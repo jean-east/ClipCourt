@@ -178,15 +178,20 @@ final class SegmentManager: SegmentManaging {
                 }
             }
             // If re-keeping inside an existing kept segment, first exclude the
-            // entire original segment so the new shorter keep replaces it cleanly
-            // instead of merging back with the leftover portions.
+            // entire original segment, then apply the new keep using the earlier
+            // of the original start or new start (preserve the original beginning
+            // if it was earlier) but use the new end time.
+            let effectiveStart: Double
             if let originalRange = recordingOriginalIncludedRange {
                 replaceRange(from: originalRange.start, to: originalRange.end, asIncluded: false)
+                effectiveStart = min(originalRange.start, startTime)
+            } else {
+                effectiveStart = startTime
             }
             // BUG-016: Range replacement — overwrite all segments in [start, stop]
             // with a single included segment. Trim partially overlapping segments,
             // remove fully contained ones.
-            replaceRange(from: startTime, to: time)
+            replaceRange(from: effectiveStart, to: time)
             recordingStartTime = nil
             preRecordingSegments = nil
             recordingVideoDuration = nil
