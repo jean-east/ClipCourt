@@ -16,6 +16,8 @@ struct PlayerView: View {
     @Environment(ExportViewModel.self) private var exportViewModel
     @Environment(\.verticalSizeClass) private var verticalSizeClass
 
+    @State private var showTimelineGuide = false
+
     // MARK: - Computed
 
     /// True when in landscape (compact vertical size class)
@@ -71,10 +73,14 @@ struct PlayerView: View {
                     .padding(.top, 4)
 
                 // Segment Timeline (Design.md: 48pt portrait)
-                SegmentTimelineView()
-                    .frame(height: Constants.UI.timelineHeight)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 8)
+                HStack(spacing: 6) {
+                    SegmentTimelineView()
+                        .frame(height: Constants.UI.timelineHeight)
+
+                    timelineInfoButton
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
 
                 // Playback Controls Row
                 playbackControlsRow
@@ -147,9 +153,13 @@ struct PlayerView: View {
                     .padding(.horizontal, 4)
 
                 // Segment timeline (36pt in landscape)
-                SegmentTimelineView()
-                    .frame(height: 36)
-                    .padding(.horizontal, 4)
+                HStack(spacing: 4) {
+                    SegmentTimelineView()
+                        .frame(height: 36)
+
+                    timelineInfoButton
+                }
+                .padding(.horizontal, 4)
 
                 // Playback controls (compact row)
                 HStack(spacing: 16) {
@@ -483,6 +493,23 @@ struct PlayerView: View {
         }
         .disabled(viewModel.segments.filter(\.isIncluded).isEmpty)
         .opacity(viewModel.segments.filter(\.isIncluded).isEmpty ? 0.4 : 1.0)
+    }
+
+    // MARK: - Timeline Info Guide
+
+    private var timelineInfoButton: some View {
+        Button {
+            showTimelineGuide = true
+        } label: {
+            Image(systemName: "info.circle")
+                .font(.caption)
+                .foregroundStyle(Color.ccTextTertiary)
+        }
+        .alert("Timeline Tips", isPresented: $showTimelineGuide) {
+            Button("Got it", role: .cancel) { }
+        } message: {
+            Text("• Tap the timeline to seek\n• Long-press a clip to delete or restore it\n• Pinch to zoom in on the timeline\n• Drag to scroll when zoomed")
+        }
     }
 }
 
