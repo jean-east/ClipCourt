@@ -112,10 +112,29 @@ final class ExportService: VideoExporting {
     }
 
     // MARK: - Active Export References (for cancellation)
+    // Protected by `lock` — accessed from export methods and cancelExport().
 
-    private var exportSession: AVAssetExportSession?
-    private var activeWriter: AVAssetWriter?
-    private var activeReader: AVAssetReader?
+    private var _exportSession: AVAssetExportSession?
+    private var _activeWriter: AVAssetWriter?
+    private var _activeReader: AVAssetReader?
+
+    private func setExportSession(_ session: AVAssetExportSession?) {
+        lock.lock()
+        _exportSession = session
+        lock.unlock()
+    }
+
+    private func setActiveWriter(_ writer: AVAssetWriter?) {
+        lock.lock()
+        _activeWriter = writer
+        lock.unlock()
+    }
+
+    private func setActiveReader(_ reader: AVAssetReader?) {
+        lock.lock()
+        _activeReader = reader
+        lock.unlock()
+    }
 
     // MARK: - Composition Builder (Shared by Both Paths)
 
@@ -257,11 +276,11 @@ final class ExportService: VideoExporting {
 
         session.outputURL = outputURL
         session.outputFileType = .mp4
-        self.exportSession = session
+        setExportSession(session)
 
         // Cleanup on any exit path
         defer {
-            self.exportSession = nil
+            setExportSession(nil)
         }
 
         // Monitor progress in background
@@ -340,8 +359,8 @@ final class ExportService: VideoExporting {
 
         // Cleanup on any exit path
         defer {
-            self.activeReader = nil
-            self.activeWriter = nil
+            setActiveReader(nil)
+            setActiveWriter(nil)
         }
 
         // --- Set up Reader ---
@@ -352,7 +371,7 @@ final class ExportService: VideoExporting {
         } catch {
             throw ExportError.readerCreationFailed(error.localizedDescription)
         }
-        self.activeReader = reader
+        setActiveReader(reader)
 
         let videoTracks = try await composition.loadTracks(withMediaType: .video)
         let audioTracks = try await composition.loadTracks(withMediaType: .audio)
@@ -397,7 +416,7 @@ final class ExportService: VideoExporting {
         } catch {
             throw ExportError.writerCreationFailed(error.localizedDescription)
         }
-        self.activeWriter = writer
+        setActiveWriter(writer)
 
         // Video writer input — H.264 encoding
         let naturalSize = try await compositionVideoTrack.load(.naturalSize)
@@ -582,10 +601,18 @@ final class ExportService: VideoExporting {
     // MARK: - Cancellation
 
     /// Cancel any in-progress export. Safe to call from any thread.
+    /// All shared references are read under lock to prevent data races.
     func cancelExport() {
         isCancelled = true
-        exportSession?.cancelExport()
-        activeWriter?.cancelWriting()
-        activeReader?.cancelReading()
+
+        lock.lock()
+        let session = _exportSession
+        let writer = _activeWriter
+        let reader = _activeReader
+        lock.unlock()
+
+        session?.cancelExport()
+        writer?.cancelWriting()
+        reader?.cancelReading()
     }
 }
