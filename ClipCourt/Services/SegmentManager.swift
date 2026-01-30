@@ -37,6 +37,12 @@ final class SegmentManager: SegmentManaging {
     /// Invariant: sorted by startTime, non-overlapping, tiling contiguous ranges.
     private(set) var segments: [Segment] = []
 
+    /// BUG-016: Tracks where the current recording session started.
+    /// Set by `beginIncluding()`, consumed by `stopIncluding()` for range replacement.
+    /// When non-nil, `stopIncluding()` replaces the entire `[recordingStartTime, stopTime]`
+    /// range with a single included segment instead of acting on a single point.
+    private var recordingStartTime: Double?
+
     // MARK: - Computed Properties
 
     /// Total duration of all included segments, in seconds.
@@ -59,8 +65,13 @@ final class SegmentManager: SegmentManaging {
     /// - **No segments yet:** Initializes the timeline with [0..time excluded][time..end included]
     /// - **Inside an excluded segment:** Splits it at `time` — first half stays excluded,
     ///   second half becomes included.
-    /// - **Inside an included segment:** No-op (already including).
+    /// - **Inside an included segment:** Records start time for range replacement (BUG-016).
     /// - **Beyond all segments:** Extends or creates a new included segment to video end.
+    ///
+    /// BUG-016: Always stores `recordingStartTime` so that `stopIncluding()` can perform
+    /// a range replacement — overwriting all segments in [start, stop] with one included
+    /// segment. This implements tape-recorder semantics: re-recording over existing clips
+    /// replaces them.
     ///
     /// Adjacent same-state segments may temporarily coexist during active recording.
     /// They are merged when the recording closes (stopIncluding, toggleSegment,
@@ -75,18 +86,23 @@ final class SegmentManager: SegmentManaging {
         guard videoDuration > 0 else { return segments }
         let t = clamp(time, min: 0, max: videoDuration)
 
+        // BUG-016: Always store recording start time for range replacement on stop.
+        // This enables tape-recorder semantics — re-recording over existing segments
+        // overwrites them instead of leaving fragments.
+        recordingStartTime = t
+
         if segments.isEmpty {
             // First interaction: initialize the full timeline
             initializeTimeline(at: t, videoDuration: videoDuration, startIncluded: true)
         } else if let index = segmentIndex(containing: t) {
             // Inside an existing segment
             let seg = segments[index]
-            if seg.isIncluded {
-                // Already including — no-op
-                return segments
+            if !seg.isIncluded {
+                // Split the excluded segment: [start..t excluded] [t..end included]
+                splitAndSetIncluded(at: t, index: index, setIncluded: true)
             }
-            // Split the excluded segment: [start..t excluded] [t..end included]
-            splitAndSetIncluded(at: t, index: index, setIncluded: true)
+            // BUG-016: If already included, no split needed — recordingStartTime is
+            // stored above, so stopIncluding() will handle the full range replacement.
         } else if t >= (segments.last?.endTime ?? 0) {
             // Beyond all segments — extend to video end
             let lastEnd = segments.last?.endTime ?? 0
@@ -108,7 +124,13 @@ final class SegmentManager: SegmentManaging {
 
     /// Stop including content at the given playback time.
     ///
-    /// Behavior:
+    /// BUG-016: When `recordingStartTime` is set (from a prior `beginIncluding` call),
+    /// performs a **range replacement**: all segments overlapping `[recordingStartTime, time]`
+    /// are trimmed or removed, and a single included segment is inserted for the recorded
+    /// range. This implements tape-recorder semantics — re-recording over existing clips
+    /// replaces them cleanly.
+    ///
+    /// Fallback behavior (no `recordingStartTime`):
     /// - **Inside an included segment:** Splits it at `time` — first half stays included,
     ///   second half becomes excluded.
     /// - **Inside an excluded segment:** No-op (already excluding).
@@ -122,14 +144,23 @@ final class SegmentManager: SegmentManaging {
     func stopIncluding(at time: Double) -> [Segment] {
         guard !segments.isEmpty else { return segments }
 
-        if let index = segmentIndex(containing: time) {
-            let seg = segments[index]
-            if !seg.isIncluded {
-                // Already excluded — no-op
-                return segments
+        if let startTime = recordingStartTime {
+            // BUG-016: Range replacement — overwrite all segments in [start, stop]
+            // with a single included segment. Trim partially overlapping segments,
+            // remove fully contained ones.
+            replaceRange(from: startTime, to: time)
+            recordingStartTime = nil
+        } else {
+            // Fallback: point-in-time split (e.g., restored session without recordingStartTime)
+            if let index = segmentIndex(containing: time) {
+                let seg = segments[index]
+                if !seg.isIncluded {
+                    // Already excluded — no-op
+                    return segments
+                }
+                // Split the included segment: [start..time included] [time..end excluded]
+                splitAndSetIncluded(at: time, index: index, setIncluded: false)
             }
-            // Split the included segment: [start..time included] [time..end excluded]
-            splitAndSetIncluded(at: time, index: index, setIncluded: false)
         }
         // If time is outside all segments, nothing to stop
 
@@ -205,9 +236,10 @@ final class SegmentManager: SegmentManaging {
     // MARK: - Bulk Operations
 
     /// Replace all segments (used when restoring from persistence).
-    /// Segments are sorted and validated.
+    /// Segments are sorted and validated. Clears any active recording session.
     func replaceSegments(_ newSegments: [Segment]) {
         segments = newSegments.sorted()
+        recordingStartTime = nil
     }
 
     /// Cap the last segment's endTime to the actual video duration
@@ -236,6 +268,69 @@ final class SegmentManager: SegmentManaging {
     /// Remove all segments and reset to empty state.
     func reset() {
         segments = []
+        recordingStartTime = nil
+    }
+
+    // MARK: - Private: Range Replacement (BUG-016)
+
+    /// Replace all segments overlapping the range `[from, to]` with a single included segment.
+    ///
+    /// Segments fully inside the range are removed. Segments partially overlapping are
+    /// trimmed to the non-overlapping portion. Segments fully containing the range are
+    /// split into two remnants (before and after). This implements tape-recorder semantics:
+    /// recording over existing clips erases and replaces them.
+    ///
+    /// - Parameters:
+    ///   - from: Start of the recorded range (seconds).
+    ///   - to: End of the recorded range (seconds).
+    private func replaceRange(from: Double, to: Double) {
+        let rangeStart = min(from, to)
+        let rangeEnd = max(from, to)
+
+        // Zero-length recording — nothing to replace
+        guard rangeEnd > rangeStart else { return }
+
+        var newSegments: [Segment] = []
+
+        for seg in segments {
+            if seg.endTime <= rangeStart || seg.startTime >= rangeEnd {
+                // Completely outside the range — keep as-is
+                newSegments.append(seg)
+            } else if seg.startTime < rangeStart && seg.endTime > rangeEnd {
+                // Fully contains the range — split into two remnants
+                newSegments.append(Segment(
+                    startTime: seg.startTime, endTime: rangeStart,
+                    isIncluded: seg.isIncluded
+                ))
+                newSegments.append(Segment(
+                    startTime: rangeEnd, endTime: seg.endTime,
+                    isIncluded: seg.isIncluded
+                ))
+            } else if seg.startTime < rangeStart {
+                // Overlaps from the left — trim to end before range
+                newSegments.append(Segment(
+                    startTime: seg.startTime, endTime: rangeStart,
+                    isIncluded: seg.isIncluded
+                ))
+            } else if seg.endTime > rangeEnd {
+                // Overlaps from the right — trim to start after range
+                newSegments.append(Segment(
+                    startTime: rangeEnd, endTime: seg.endTime,
+                    isIncluded: seg.isIncluded
+                ))
+            }
+            // else: fully contained within the range — remove (don't add)
+        }
+
+        // Insert the new included segment for the recorded range
+        newSegments.append(Segment(
+            startTime: rangeStart, endTime: rangeEnd, isIncluded: true
+        ))
+
+        // Sort to maintain invariant
+        newSegments.sort()
+
+        segments = newSegments
     }
 
     // MARK: - Private: Timeline Initialization
