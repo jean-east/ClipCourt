@@ -58,7 +58,7 @@ struct ImportView: View {
                 ) {
                     Text("Choose Video")
                         .font(.headline.weight(.semibold))
-                        .foregroundStyle(.ccTextPrimary)
+                        .foregroundStyle(Color.ccTextPrimary)
                         .frame(width: 200, height: 52)
                         .background(Color.ccExport, in: RoundedRectangle(cornerRadius: 16))
                 }

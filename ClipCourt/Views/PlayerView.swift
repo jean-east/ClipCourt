@@ -476,7 +476,7 @@ struct PlayerView: View {
         } label: {
             Label("Export", systemImage: "square.and.arrow.up")
                 .font(.headline.weight(.semibold))
-                .foregroundStyle(.ccTextPrimary)
+                .foregroundStyle(Color.ccTextPrimary)
                 .padding(.horizontal, 20)
                 .frame(height: 44)
                 .background(Color.ccExport, in: Capsule())

@@ -80,7 +80,7 @@ struct ExportView: View {
             } label: {
                 Text("Export Now")
                     .font(.headline.weight(.semibold))
-                    .foregroundStyle(.ccTextPrimary)
+                    .foregroundStyle(Color.ccTextPrimary)
                     .frame(maxWidth: .infinity)
                     .frame(height: 52)
                     .background(Color.ccExport, in: RoundedRectangle(cornerRadius: 16))
@@ -209,7 +209,7 @@ struct ExportView: View {
             } label: {
                 Text("Done")
                     .font(.headline.weight(.semibold))
-                    .foregroundStyle(.ccTextPrimary)
+                    .foregroundStyle(Color.ccTextPrimary)
                     .frame(maxWidth: .infinity)
                     .frame(height: 52)
                     .background(Color.ccInclude, in: RoundedRectangle(cornerRadius: 16))
