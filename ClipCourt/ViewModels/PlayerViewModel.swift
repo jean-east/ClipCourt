@@ -222,9 +222,12 @@ final class PlayerViewModel {
             isIncluding = false
         }
 
-        seek(to: 0)
-        if !isPlaying {
-            togglePlayPause()
+        Task {
+            await playerService.seek(to: 0)
+            currentTime = 0
+            playerService.play()
+            playerService.setRate(playbackSpeed.rawValue)
+            isPlaying = true
         }
     }
 
