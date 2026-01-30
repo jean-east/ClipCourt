@@ -157,9 +157,9 @@ The app is functionally complete — video import, playback, toggle, timeline wi
 - **Expected:** All included segments should appear visually consistent. Use a different cue for "current segment" — e.g., brighter border, opacity pulse, or overlay glow — rather than changing the fill color.
 - **Fix:** Change `segmentFillColor` to return `Color.ccInclude` for all included segments, and add a subtle overlay or border for the current one. ~10 lines.
 
-#### BUG-015: White/miscolored bars on import screen (top and bottom corners) ⭐ NEW
+#### BUG-015: White/miscolored bars on import screen (top and bottom corners) ✅ FIXED
 - **Priority:** P2
-- **Status:** open
+- **Status:** fixed
 - **Filed:** 2025-07-13 (Boss — screenshot)
 - **File(s):** `Views/ImportView.swift`, `ClipCourtApp.swift`
 - **Description:** The import/empty-state screen shows a white bar at the very top (behind the status bar notch area) and a green corner bleed at the bottom right. The app's background color isn't extending edge-to-edge — likely missing `.ignoresSafeArea()` or the window/scene background isn't set to `ccBackground`.
@@ -187,6 +187,7 @@ The app is functionally complete — video import, playback, toggle, timeline wi
 | BUG-002 | P1 | No landscape-adaptive layout | PM Ralph + Engineer | `cf12848` → `82e4ae9` |
 | BUG-003 | P1 | Pinch-to-zoom timeline | PM Ralph | `b342358` |
 | BUG-014 | P1 | Segments silently disappear (data loss) | Engineer | `bce7bf5` |
+| BUG-015 | P2 | White/miscolored bars on import screen | Engineer | `7c5878e` |
 
 ---
 
