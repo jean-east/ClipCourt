@@ -184,22 +184,29 @@ struct PlayerView: View {
             Spacer()
 
             // Skip Forward 15s (tap) / Fast Forward (hold)
-            Button {
-                HapticManager.skip()
-                viewModel.seek(to: min(viewModel.duration, viewModel.currentTime + 15))
-            } label: {
-                Image(systemName: viewModel.isFastForwarding ? "forward.fill" : "goforward.15")
-                    .font(.title3)
-                    .foregroundStyle(viewModel.isFastForwarding ? Color.ccSpeed : Color.ccTextSecondary)
-                    .frame(width: 44, height: 44)
-            }
-            .simultaneousGesture(
-                LongPressGesture(minimumDuration: 0.3)
-                    .onEnded { _ in
+            Image(systemName: viewModel.isFastForwarding ? "forward.fill" : "goforward.15")
+                .font(.title3)
+                .foregroundStyle(viewModel.isFastForwarding ? Color.ccSpeed : Color.ccTextSecondary)
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    HapticManager.skip()
+                    viewModel.seek(to: min(viewModel.duration, viewModel.currentTime + 15))
+                }
+                .onLongPressGesture(minimumDuration: 0.3) {
+                    // This fires when the long press completes AND user lifts finger
+                    // For hold-to-FF, we need the pressing/onChange approach
+                } onPressingChanged: { pressing in
+                    if pressing {
+                        // Finger down for 0.3s — start fast forward
                         HapticManager.fastForwardEngage()
                         viewModel.beginFastForward()
+                    } else if viewModel.isFastForwarding {
+                        // Finger lifted — stop fast forward
+                        HapticManager.fastForwardRelease()
+                        viewModel.endFastForward()
                     }
-            )
+                }
 
             Spacer()
 
