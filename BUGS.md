@@ -26,16 +26,13 @@
 
 #### BUG-002: No landscape-adaptive layout
 - **Priority:** P1
-- **Status:** ✅ fixed (cf12848)
-- **Filed:** 2025-07-13 (PM code review + QA screenshot)
+- **Status:** ✅ fixed (cf12848 → improved in 82e4ae9)
+- **Filed:** 2025-07-13 (PM code review + QA screenshot + Boss re-filed)
 - **File(s):** `Views/PlayerView.swift`
-- **Description:** PlayerView uses a single `VStack` layout that doesn't adapt to landscape orientation. The Design.md specifies a completely different landscape layout:
-  - Video player fills left ~70% of screen
-  - Right panel (~30%) contains: status indicator, playback controls, toggle button, export button
-  - Bottom strip (80pt) spans full width: scrub bar (44pt) + segment timeline (36pt)
-  - QA screenshot (`qa-step-4-light-mode.png`) confirms the portrait VStack just rotates sideways in landscape — controls are tiny, layout is unusable
-- **Expected:** Layout should adapt based on `horizontalSizeClass` / `verticalSizeClass` per Design.md landscape spec.
-- **Scope:** Large — requires restructuring PlayerView body with GeometryReader or sizeClass checks.
+- **Description:** PlayerView used a single `VStack` layout that didn't adapt to landscape orientation. The Design.md specifies a 70/30 split landscape layout. Boss re-filed after seeing old build; screenshot at `/tmp/clipcourt-landscape.png` shows portrait VStack rotated sideways.
+- **Fix (v1, cf12848):** Added `verticalSizeClass` detection + landscape HStack layout
+- **Fix (v2, 82e4ae9):** Improved to use `GeometryReader` aspect ratio detection (`width > height`), scrollable right panel, compact 48pt toggle. All controls in right panel ScrollView.
+- **Current state:** Fixed. Video fills left 70%, scrollable controls panel on right 30%. Builds clean.
 
 #### BUG-003: Pinch-to-zoom not implemented on segment timeline
 - **Priority:** P1
@@ -126,7 +123,7 @@
 |----|----------|-------|----------|--------|
 | — | P1 | Share Video button was a stub | Engineer | `ceb4a35` |
 | BUG-001 | P1 | No end-of-video handling | PM Ralph | `bcf84d0` |
-| BUG-002 | P1 | No landscape-adaptive layout | PM Ralph | `cf12848` |
+| BUG-002 | P1 | No landscape-adaptive layout | PM Ralph + Engineer | `cf12848` → `82e4ae9` |
 | BUG-003 | P1 | Pinch-to-zoom timeline | PM Ralph | `b342358` |
 
 ---
