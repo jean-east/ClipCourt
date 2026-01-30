@@ -66,7 +66,7 @@ enum Constants {
         /// Recording border width when including.
         static let recordingBorderWidth: CGFloat = 4
 
-        /// Timeline height.
-        static let timelineHeight: CGFloat = 60
+        /// Timeline height (Design.md: 48pt).
+        static let timelineHeight: CGFloat = 48
     }
 }
