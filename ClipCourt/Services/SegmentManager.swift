@@ -15,6 +15,8 @@ import Foundation
 // MARK: - Protocol
 
 /// Protocol for segment management — enables testing.
+/// MainActor-isolated to enforce thread safety at compile time.
+@MainActor
 protocol SegmentManaging {
     var segments: [Segment] { get }
     var totalIncludedDuration: Double { get }
@@ -29,6 +31,7 @@ protocol SegmentManaging {
 
 // MARK: - Implementation
 
+@MainActor
 final class SegmentManager: SegmentManaging {
 
     // MARK: - State
