@@ -12,15 +12,17 @@
 
 ## 🏁 TestFlight Readiness Summary
 
-**All 3 P1 bugs are fixed and pushed.** The app is functionally complete — video import, playback, toggle, timeline with pinch-to-zoom, landscape layout, export, and persistence all work.
+**✅ No P0/P1 blockers — ready for TestFlight.**
 
-**Remaining: 6 P2 (polish) + 3 P3 (cosmetic) = 9 open bugs.** None are blockers for an initial TestFlight build.
+The app is functionally complete — video import, playback, toggle, timeline with pinch-to-zoom, landscape layout, export, and persistence all work. BUG-014 (P1 data-loss blocker) has been fixed (`bce7bf5`).
+
+**Remaining: 0 blockers + 5 P2 (polish) + 3 P3 (cosmetic) = 8 open bugs.**
 
 ### Recommended Fix Order (pre-TestFlight polish)
-1. **BUG-010** (P3, quick win) — Two green shades. Boss-filed, easy 5-min fix.
-2. **BUG-011** (P2, new) — Landscape missing "included duration" text. Easy add.
-3. **BUG-009** (P3, quick win) — Constants mismatch. 2-min cleanup.
-4. **BUG-005** (P2) — Resume banner. Improves first-relaunch UX.
+1. **BUG-013** (P2, Boss-filed) — Close button confirmation dialog. Safety-critical UX.
+2. **BUG-010** (P3, quick win) — Two green shades. Boss-filed, easy 5-min fix.
+3. **BUG-011** (P2, new) — Landscape missing "included duration" text. Easy add.
+4. **BUG-009** (P3, quick win) — Constants mismatch. 2-min cleanup.
 5. **BUG-006** (P2) — Full-area tap on import. Forgiving design.
 6. **BUG-007** (P2) — Custom scrub bar. Significant design spec delta.
 7. **BUG-012** (P3, new) — Animation/layout trigger mismatch. Minor inconsistency.
@@ -35,7 +37,36 @@
 
 ### P1 — Major / Broken Feature
 
-_None — all P1 bugs resolved._ 🎉
+#### BUG-014: Existing segments silently disappear when recording a new segment (data loss) ✅ FIXED
+- **Priority:** P1
+- **Status:** fixed
+- **Filed:** 2025-07-14 (Boss)
+- **File(s):** `Services/SegmentManager.swift` → `beginIncluding()`, `splitAndSetIncluded()`, `cleanup()`
+- **Description:** When a user creates an included segment (e.g., at the end of a video), then seeks to a different position and records a new segment, the original segment silently disappears. This is a data-loss bug — the user's previously created work is destroyed without warning.
+- **Steps to Reproduce:**
+  1. Start editing a video.
+  2. Seek to the end, toggle ON to start recording, toggle OFF to finish → creates an included segment near the end.
+  3. Seek to the beginning, toggle ON to start recording a new segment.
+  4. Toggle OFF to finish the new segment.
+  5. **Observe:** The segment created in step 2 has vanished from the timeline.
+- **Root Cause (code-traced):**
+  The bug is a lossy merge during `beginIncluding()`. Here's the exact chain (using a 60s video as example):
+  1. After step 2, segments are: `[Seg(0,55,excl), Seg(55,58,incl), Seg(58,60,excl)]` ✅
+  2. Step 3 calls `beginIncluding(at:0, videoDuration:60)`. `segmentIndex(containing:0)` finds index 0 → `Seg(0,55,excl)`.
+  3. `splitAndSetIncluded(at:0, index:0, setIncluded:true)` — since `time (0) <= original.startTime (0)`, the **entire** segment `Seg(0,55)` is flipped to included (no split occurs at a boundary).
+  4. `cleanup()` → `mergeAdjacentSegments()` sees `Seg(0,55,incl)` adjacent to `Seg(55,58,incl)` → **merges** into `Seg(0,58,incl)`. The boundary at t=55 is destroyed.
+  5. Step 4 calls `stopIncluding(at:3)` → splits `Seg(0,58,incl)` into `Seg(0,3,incl)` + `Seg(3,58,excl)`. The `Seg(3,58,excl)` merges with `Seg(58,60,excl)` → `Seg(3,60,excl)`.
+  6. Final segments: `[Seg(0,3,incl), Seg(3,60,excl)]` — the user's segment at 55–58 **no longer exists**.
+  
+  **In short:** `beginIncluding()` calls `cleanup()` which calls `mergeAdjacentSegments()`. The newly-included portion merges with the adjacent pre-existing included segment, creating one large "super-segment." When `stopIncluding()` later splits this super-segment, everything after the split becomes excluded — silently erasing the original segment.
+  
+  This is **not** limited to seeking to t=0. It reproduces whenever `beginIncluding` creates an included region adjacent to an existing included segment (e.g., seeking to t=1 inside the same excluded segment triggers the same merge).
+- **Expected:** Creating a new included segment should never destroy existing included segments. All previously recorded segments must be preserved.
+- **Fix Direction (PM recommendation — engineer to validate):**
+  - **Option A (minimal):** In `beginIncluding()`, replace `cleanup()` with a limited cleanup that removes zero-duration segments and sorts, but **skips `mergeAdjacentSegments()`**. Defer merging to `stopIncluding()`, `toggleSegment()`, and `finalizeSegments()`. This preserves segment boundaries during an active recording. Adjacent same-state segments temporarily coexist — they merge when the recording closes.
+  - **Option B (structural):** Change `beginIncluding()` so that the new included region only extends to the **next segment boundary** (not the end of the current excluded segment). This avoids creating the adjacent same-state condition entirely. E.g., if segments are `[Seg(0,55,excl), Seg(55,58,incl), ...]` and user begins at t=0, create `[Seg(0,55,incl), Seg(55,58,incl), ...]` — which would still merge. So Option A is likely cleaner.
+  - **Option C (hybrid):** Add a "recording origin" marker to SegmentManager. During cleanup, never merge a segment that was just created by `beginIncluding` with pre-existing segments. Clear the marker on `stopIncluding`.
+- **PM Note:** This is the highest-priority bug. It's a silent data-loss issue — no error, no warning, the user's work simply vanishes. Blocks TestFlight.
 
 ---
 
@@ -52,12 +83,21 @@ _None — all P1 bugs resolved._ 🎉
 
 #### BUG-005: No resume banner on session restore
 - **Priority:** P2
-- **Status:** open
+- **Status:** wontfix
 - **Filed:** 2025-07-13 (PM code review)
+- **Closed:** 2025-07-13 (Boss — not needed, auto-resume is fine)
 - **File(s):** `ClipCourtApp.swift` (ContentView), `Views/PlayerView.swift`
-- **Description:** Design.md specifies a slide-down resume banner: "Resume editing 'IMG_4521.MOV'? [Continue] [Start Fresh]" with auto-dismiss after 10s. Current code (`attemptResumeSession()`) auto-resumes immediately without asking.
-- **Expected:** Show resume banner per Design.md spec.
-- **PM Note:** Auto-resume actually works fine for most flows. The banner matters when a user might want to start fresh. Medium priority.
+- **Description:** Design.md specifies a slide-down resume banner. Current code auto-resumes immediately without asking.
+- **Resolution:** Boss says resume state isn't needed. Auto-resume behavior is acceptable.
+
+#### BUG-013: No confirmation dialog when tapping Close button ⭐ NEW
+- **Priority:** P2
+- **Status:** open
+- **Filed:** 2025-07-13 (Boss)
+- **File(s):** `Views/PlayerView.swift`
+- **Description:** Tapping the Close button (in the export bar) exits the editing session immediately with no confirmation. User could lose their work accidentally.
+- **Expected:** Show a confirmation dialog (e.g., "Discard edits? [Cancel] [Discard]") before closing the session.
+- **Fix:** Add a `.confirmationDialog` or `.alert` modifier triggered by the close button tap.
 
 #### BUG-006: Empty state not fully tappable
 - **Priority:** P2
@@ -136,6 +176,7 @@ _None — all P1 bugs resolved._ 🎉
 | BUG-001 | P1 | No end-of-video handling | PM Ralph | `bcf84d0` |
 | BUG-002 | P1 | No landscape-adaptive layout | PM Ralph + Engineer | `cf12848` → `82e4ae9` |
 | BUG-003 | P1 | Pinch-to-zoom timeline | PM Ralph | `b342358` |
+| BUG-014 | P1 | Segments silently disappear (data loss) | Engineer | `bce7bf5` |
 
 ---
 
