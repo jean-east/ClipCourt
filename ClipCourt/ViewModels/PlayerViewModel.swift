@@ -56,6 +56,10 @@ final class PlayerViewModel {
     var errorMessage: String?
     var isLoading: Bool = false
 
+    /// Cached: whether any segments are marked as included.
+    /// Avoids re-filtering the segments array every render cycle.
+    var hasIncludedSegments: Bool = false
+
     // MARK: - Project
 
     private(set) var project: Project?
@@ -76,14 +80,23 @@ final class PlayerViewModel {
 
     init(
         playerService: VideoPlayerService = VideoPlayerService(),
-        segmentManager: SegmentManager = SegmentManager(),
+        segmentManager: SegmentManager? = nil,
         persistenceService: PersistenceService = PersistenceService()
     ) {
         self.playerService = playerService
-        self.segmentManager = segmentManager
+        self.segmentManager = segmentManager ?? SegmentManager()
         self.persistenceService = persistenceService
 
         observePlayerTime()
+    }
+
+    // MARK: - Segment Update Helper
+
+    /// Updates the segments array and refreshes the cached `hasIncludedSegments` flag.
+    /// Call this instead of assigning `segments` directly.
+    private func updateSegments(_ newSegments: [Segment]) {
+        segments = newSegments
+        hasIncludedSegments = newSegments.contains(where: \.isIncluded)
     }
 
     // MARK: - Time Observation
@@ -114,14 +127,14 @@ final class PlayerViewModel {
         // If user was including (toggle ON), close the open segment at video end
         if isIncluding {
             let updated = segmentManager.stopIncluding(at: duration)
-            segments = updated
+            updateSegments(updated)
             isIncluding = false
             keepingStartTime = nil
         }
 
         // Finalize segments to cap at video duration and remove any zero-duration remnants
         let finalized = segmentManager.finalizeSegments(videoDuration: duration)
-        segments = finalized
+        updateSegments(finalized)
 
         scheduleSave()
     }
@@ -158,7 +171,7 @@ final class PlayerViewModel {
 
             // Restore segments
             segmentManager.replaceSegments(projectToLoad.segments)
-            segments = segmentManager.segments
+            updateSegments(segmentManager.segments)
 
             // Restore playback position
             if projectToLoad.lastPlaybackTime > 0 {
@@ -181,13 +194,14 @@ final class PlayerViewModel {
     }
 
     /// Close the current project and return to import.
+    /// Tears down AVPlayer, observers, and all playback resources.
     func closeProject() {
-        playerService.pause()
+        playerService.cleanup()
         isPlaying = false
         hasActiveProject = false
         isSelectingNewVideo = false
         project = nil
-        segments = []
+        updateSegments([])
         isIncluding = false
         currentTime = 0
         duration = 0
@@ -236,7 +250,7 @@ final class PlayerViewModel {
         // Stop keeping if active
         if isIncluding {
             let updated = segmentManager.stopIncluding(at: currentTime)
-            segments = updated
+            updateSegments(updated)
             isIncluding = false
             keepingStartTime = nil
         }
@@ -290,14 +304,14 @@ final class PlayerViewModel {
         if isIncluding {
             // Stop including
             let updated = segmentManager.stopIncluding(at: currentTime)
-            segments = updated
+            updateSegments(updated)
             isIncluding = false
             keepingStartTime = nil
         } else {
             // Start including
             keepingStartTime = currentTime
             let updated = segmentManager.beginIncluding(at: currentTime, videoDuration: duration)
-            segments = updated
+            updateSegments(updated)
             isIncluding = true
         }
 
@@ -312,7 +326,7 @@ final class PlayerViewModel {
     /// Toggle a specific segment's included state (from timeline tap).
     func toggleSegment(_ segment: Segment) {
         let updated = segmentManager.toggleSegment(id: segment.id)
-        segments = updated
+        updateSegments(updated)
         scheduleSave()
     }
 
@@ -329,6 +343,8 @@ final class PlayerViewModel {
     }
 
     /// Immediate save — called on scene phase changes and app termination.
+    /// Prepares project data on the main actor, then dispatches JSON encoding
+    /// and file I/O to a background thread to avoid blocking the UI.
     func saveImmediately() {
         guard var projectToSave = project else { return }
 
@@ -338,10 +354,15 @@ final class PlayerViewModel {
 
         project = projectToSave
 
-        do {
-            try persistenceService.save(projectToSave)
-        } catch {
-            errorMessage = "Auto-save failed: \(error.localizedDescription)"
+        let service = persistenceService
+        Task.detached { [weak self] in
+            do {
+                try service.save(projectToSave)
+            } catch {
+                await MainActor.run {
+                    self?.errorMessage = "Auto-save failed: \(error.localizedDescription)"
+                }
+            }
         }
     }
 }

@@ -322,8 +322,8 @@ final class VideoPlayerService: VideoPlaybackControlling {
     // MARK: - Cleanup
 
     /// Tears down all observers and releases the player item.
-    /// Called on deinit and before loading a new asset.
-    private func cleanup() {
+    /// Called on deinit, before loading a new asset, and on project close.
+    func cleanup() {
         removeTimeObserver()
         removeEndOfVideoObserver()
         statusObservation?.invalidate()
