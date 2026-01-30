@@ -35,7 +35,7 @@ struct PlayerView: View {
                 portraitLayout
             }
         }
-        .background(Color.ccBackground)
+        .background(Color.ccBackground.ignoresSafeArea())
         .animation(.easeInOut(duration: 0.35), value: isLandscape)
         .sheet(isPresented: $exportVM.showExportSheet) {
             ExportView()

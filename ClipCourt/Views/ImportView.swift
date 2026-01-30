@@ -80,7 +80,7 @@ struct ImportView: View {
 
             Spacer()
         }
-        .background(Color.ccBackground)
+        .background(Color.ccBackground.ignoresSafeArea())
         .onChange(of: selectedItem) { _, newItem in
             Task {
                 await handleSelection(newItem)

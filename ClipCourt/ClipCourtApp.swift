@@ -14,6 +14,15 @@ struct ClipCourtApp: App {
     @State private var exportViewModel = ExportViewModel()
     @Environment(\.scenePhase) private var scenePhase
 
+    // MARK: - Init
+
+    init() {
+        // Set window background to ccBackground so no white/default color
+        // bleeds through behind safe area insets (status bar, home indicator).
+        let bg = UIColor(red: 10/255, green: 10/255, blue: 15/255, alpha: 1) // #0A0A0F Midnight
+        UIWindow.appearance().backgroundColor = bg
+    }
+
     // MARK: - Body
 
     var body: some Scene {
@@ -54,6 +63,7 @@ struct ContentView: View {
                 ImportView()
             }
         }
+        .background(Color.ccBackground.ignoresSafeArea())
         .animation(.easeInOut(duration: 0.3), value: playerViewModel.hasActiveProject)
         .task {
             await playerViewModel.attemptResumeSession()
