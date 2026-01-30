@@ -82,7 +82,7 @@ struct SlideToKeepView: View {
                     .foregroundStyle(Color.ccInclude)
                     .transition(.opacity)
             } else {
-                ShimmerText("SLIDE TO KEEP →")
+                ShimmerText("SLIDE TO START KEEPING →")
                     .transition(.opacity)
             }
         }
