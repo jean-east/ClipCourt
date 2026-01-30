@@ -54,7 +54,7 @@ struct ExportView: View {
             // Summary (Design.md: segment count + total duration)
             if let project = playerViewModel.project {
                 VStack(spacing: 4) {
-                    Text("\(project.includedSegmentCount) segment\(project.includedSegmentCount == 1 ? "" : "s") · \(TimeFormatter.format(project.includedDuration)) total duration")
+                    Text("\(project.includedSegmentCount) clip\(project.includedSegmentCount == 1 ? "" : "s") · \(TimeFormatter.format(project.includedDuration)) total")
                         .font(.body)
                         .foregroundStyle(Color.ccTextSecondary)
                 }

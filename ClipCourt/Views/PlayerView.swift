@@ -131,12 +131,12 @@ struct PlayerView: View {
                 // Status indicator + timestamp
                 VStack(spacing: 4) {
                     HStack(spacing: 6) {
-                        Image(systemName: viewModel.isIncluding ? "record.circle" : "circle")
+                        Image(systemName: viewModel.isIncluding ? "checkmark.circle.fill" : "circle")
                             .font(.caption)
                             .foregroundStyle(viewModel.isIncluding ? Color.ccInclude : Color.ccTextSecondary)
                             .symbolEffect(.pulse, isActive: viewModel.isIncluding)
 
-                        Text(viewModel.isIncluding ? "RECORDING" : "PAUSED")
+                        Text(viewModel.isIncluding ? "KEEPING" : "WATCHING")
                             .font(.caption.bold())
                             .tracking(1.5)
                             .foregroundStyle(viewModel.isIncluding ? Color.ccInclude : Color.ccTextSecondary)
@@ -246,12 +246,12 @@ struct PlayerView: View {
     private var statusRow: some View {
         HStack {
             HStack(spacing: 6) {
-                Image(systemName: viewModel.isIncluding ? "record.circle" : "circle")
+                Image(systemName: viewModel.isIncluding ? "checkmark.circle.fill" : "circle")
                     .font(.caption)
                     .foregroundStyle(viewModel.isIncluding ? Color.ccInclude : Color.ccTextSecondary)
                     .symbolEffect(.pulse, isActive: viewModel.isIncluding)
 
-                Text(viewModel.isIncluding ? "RECORDING" : "PAUSED")
+                Text(viewModel.isIncluding ? "KEEPING" : "WATCHING")
                     .font(.caption.bold())
                     .tracking(1.5)
                     .foregroundStyle(viewModel.isIncluding ? Color.ccInclude : Color.ccTextSecondary)
@@ -395,11 +395,11 @@ struct PlayerView: View {
             viewModel.toggleInclude()
         } label: {
             HStack(spacing: 10) {
-                Image(systemName: viewModel.isIncluding ? "record.circle" : "circle")
+                Image(systemName: viewModel.isIncluding ? "checkmark.circle.fill" : "circle")
                     .font(.title3)
                     .symbolEffect(.pulse, isActive: viewModel.isIncluding)
 
-                Text(viewModel.isIncluding ? "RECORDING" : "TAP TO RECORD")
+                Text(viewModel.isIncluding ? "KEEPING" : "TAP TO KEEP")
                     .font(.headline)
                     .fontWeight(viewModel.isIncluding ? .bold : .medium)
             }
@@ -442,7 +442,7 @@ struct PlayerView: View {
             Spacer()
 
             if let project = viewModel.project {
-                Text("\(TimeFormatter.format(project.includedDuration)) selected")
+                Text("\(TimeFormatter.format(project.includedDuration)) kept")
                     .font(.caption)
                     .foregroundStyle(Color.ccTextSecondary)
             }
@@ -467,7 +467,7 @@ struct PlayerView: View {
             Spacer()
 
             if let project = viewModel.project {
-                Text("\(TimeFormatter.format(project.includedDuration)) selected")
+                Text("\(TimeFormatter.format(project.includedDuration)) kept")
                     .font(.caption)
                     .foregroundStyle(Color.ccTextSecondary)
             }
@@ -508,7 +508,7 @@ struct PlayerView: View {
         .alert("Timeline Tips", isPresented: $showTimelineGuide) {
             Button("Got it", role: .cancel) { }
         } message: {
-            Text("• Tap the timeline to seek\n• Long-press a clip to delete or restore it\n• Pinch to zoom in on the timeline\n• Drag to scroll when zoomed")
+            Text("• Tap to Keep — marks highlights as you watch\n• Tap the timeline to seek\n• Long-press a clip to remove or restore it\n• Pinch to zoom, drag to scroll")
         }
     }
 }
