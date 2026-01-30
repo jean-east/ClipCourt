@@ -101,6 +101,15 @@
 - **Description:** Design.md specifies a custom inline pill picker that slides up from the speed button. Current implementation uses SwiftUI `Menu` which renders as a system context menu. Functionally equivalent but doesn't match design spec.
 - **Expected:** Custom slide-up pill picker per Design.md.
 
+#### BUG-010: Two different shades of green on segment timeline
+- **Priority:** P3
+- **Status:** open
+- **Filed:** 2025-07-13 (Boss — visual report)
+- **File(s):** `Views/SegmentTimelineView.swift`, `Utilities/Color+ClipCourt.swift`
+- **Description:** Adjacent included segments on the timeline render in two noticeably different shades of green. Should be one consistent Rally Green (#30D158) across all included segments. Likely one segment uses `Color.ccInclude` and another uses a different green (possibly `.green` system color or an opacity variant).
+- **Screenshot:** Boss-provided — clearly shows lighter and darker green segments side by side on the timeline.
+- **Expected:** All included segments should be the same Rally Green (#30D158) with uniform appearance.
+
 #### BUG-009: Constants.UI.timelineHeight mismatch
 - **Priority:** P3
 - **Status:** open
