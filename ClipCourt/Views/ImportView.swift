@@ -22,63 +22,72 @@ struct ImportView: View {
     // MARK: - Body
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 32) {
-                Spacer()
+        VStack(spacing: 0) {
+            Spacer()
 
-                // App Icon / Branding
-                VStack(spacing: 16) {
-                    Image(systemName: "film.stack")
-                        .font(.system(size: 72))
-                        .foregroundStyle(.accent)
+            // Empty state content (Design.md specs)
+            VStack(spacing: 16) {
+                // Icon (Design.md: video.badge.plus, 56pt, ccTextSecondary)
+                Image(systemName: "video.badge.plus")
+                    .font(.system(size: 56))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(Color.ccTextSecondary)
 
-                    Text("ClipCourt")
-                        .font(.largeTitle.bold())
+                // Headline (Design.md: .title2 Bold, ccTextPrimary)
+                Text("Tap to open a video")
+                    .font(.title2.bold())
+                    .foregroundStyle(Color.ccTextPrimary)
 
-                    Text("Watch once. Keep the best parts.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-
-                // Import Button
-                VStack(spacing: 16) {
-                    PhotosPicker(
-                        selection: $selectedItem,
-                        matching: .videos,
-                        photoLibrary: .shared()
-                    ) {
-                        Label("Choose Video", systemImage: "video.badge.plus")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
-                    .disabled(isProcessing)
-
-                    if isProcessing {
-                        ProgressView("Loading video…")
-                    }
-
-                    if let errorMessage {
-                        Text(errorMessage)
-                            .font(.caption)
-                            .foregroundStyle(.red)
-                            .multilineTextAlignment(.center)
-                    }
-                }
-                .padding(.horizontal, 32)
-
-                Spacer()
+                // Body (Design.md: .body Regular, ccTextSecondary)
+                Text("Pick a game film from your camera roll and start clipping")
+                    .font(.body)
+                    .foregroundStyle(Color.ccTextSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
             }
-            .onChange(of: selectedItem) { _, newItem in
-                Task {
-                    await handleSelection(newItem)
+
+            Spacer()
+                .frame(height: 24)
+
+            // Import Button (Design.md: Signal Blue bg, white label, 52pt, 200pt wide, 16pt radius)
+            VStack(spacing: 16) {
+                PhotosPicker(
+                    selection: $selectedItem,
+                    matching: .videos,
+                    photoLibrary: .shared()
+                ) {
+                    Text("Choose Video")
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 200, height: 52)
+                        .background(Color.ccExport, in: RoundedRectangle(cornerRadius: 16))
                 }
+                .disabled(isProcessing)
+
+                if isProcessing {
+                    ProgressView("Loading video…")
+                        .foregroundStyle(Color.ccTextSecondary)
+                }
+
+                if let errorMessage {
+                    Text(errorMessage)
+                        .font(.caption)
+                        .foregroundStyle(Color.ccDanger)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 32)
+                }
+            }
+
+            Spacer()
+        }
+        .background(Color.ccBackground)
+        .onChange(of: selectedItem) { _, newItem in
+            Task {
+                await handleSelection(newItem)
             }
         }
+        // Make entire empty state tappable (Design.md: forgiving design)
+        .contentShape(Rectangle())
     }
 
     // MARK: - Selection Handling
@@ -95,7 +104,6 @@ struct ImportView: View {
                 throw ImportError.noIdentifier
             }
 
-            // The itemIdentifier from PhotosPicker is the PHAsset localIdentifier
             await viewModel.startNewProject(assetIdentifier: assetIdentifier)
         } catch {
             errorMessage = error.localizedDescription

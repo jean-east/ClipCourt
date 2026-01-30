@@ -17,8 +17,6 @@ struct ExportView: View {
     // MARK: - Body
 
     var body: some View {
-        @Bindable var vm = exportViewModel
-
         NavigationStack {
             VStack(spacing: 24) {
                 switch exportViewModel.state {
@@ -33,15 +31,14 @@ struct ExportView: View {
                 }
             }
             .padding()
-            .navigationTitle("Export")
+            .navigationTitle("Export Video")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        if exportViewModel.isExporting {
-                            exportViewModel.cancelExport()
+                    if !exportViewModel.isExporting {
+                        Button("Cancel") {
+                            dismiss()
                         }
-                        dismiss()
                     }
                 }
             }
@@ -54,71 +51,88 @@ struct ExportView: View {
 
     private var idleContent: some View {
         VStack(spacing: 20) {
-            // Summary
+            // Summary (Design.md: segment count + total duration)
             if let project = playerViewModel.project {
                 VStack(spacing: 4) {
-                    Text("Selected: \(TimeFormatter.format(project.includedDuration))")
-                        .font(.headline)
-                    Text("\(project.includedSegments.count) segment(s)")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                    Text("\(project.includedSegmentCount) segment\(project.includedSegmentCount == 1 ? "" : "s") · \(TimeFormatter.format(project.includedDuration)) total duration")
+                        .font(.body)
+                        .foregroundStyle(Color.ccTextSecondary)
                 }
             }
 
-            Divider()
-
-            // Mode picker
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Export Quality")
-                    .font(.headline)
-
+            // Mode picker — Design.md option cards
+            VStack(spacing: 12) {
                 ForEach(ExportSettings.ExportMode.allCases) { mode in
-                    Button {
-                        exportViewModel.settings.mode = mode
-                    } label: {
-                        HStack {
-                            VStack(alignment: .leading) {
-                                Text(mode.displayName)
-                                    .font(.body.bold())
-                                Text(mode.subtitle)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                            if exportViewModel.settings.mode == mode {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(.accent)
-                            }
-                        }
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(exportViewModel.settings.mode == mode
-                                      ? Color.accentColor.opacity(0.1)
-                                      : Color(.secondarySystemBackground))
-                        )
-                    }
-                    .buttonStyle(.plain)
+                    exportOptionCard(mode: mode)
                 }
             }
 
             Spacer()
 
-            // Export button
+            // Export Now button (Design.md: Signal Blue, 52pt, full width, 16pt radius)
             Button {
+                HapticManager.exportTap()
                 let asset = playerViewModel.playerService.getAsset()
                 exportViewModel.startExport(
                     asset: asset,
                     segments: playerViewModel.segments
                 )
             } label: {
-                Label("Export Video", systemImage: "square.and.arrow.up")
-                    .font(.headline)
+                Text("Export Now")
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
+                    .frame(height: 52)
+                    .background(Color.ccExport, in: RoundedRectangle(cornerRadius: 16))
             }
-            .buttonStyle(.borderedProminent)
         }
+    }
+
+    // MARK: - Export Option Card (Design.md)
+
+    private func exportOptionCard(mode: ExportSettings.ExportMode) -> some View {
+        let isSelected = exportViewModel.settings.mode == mode
+
+        return Button {
+            HapticManager.selection()
+            exportViewModel.settings.mode = mode
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: mode.iconName)
+                    .font(.title3)
+                    .foregroundStyle(
+                        mode == .lossless ? Color.ccSpeed : Color.ccExport
+                    )
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(mode.displayName)
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(Color.ccTextPrimary)
+
+                    Text(mode == .lossless
+                         ? "No re-encoding · Fastest\nSame file size as source"
+                         : "Re-encoded · Slower export\n~60% of original size")
+                        .font(.caption)
+                        .foregroundStyle(Color.ccTextSecondary)
+                        .lineLimit(2)
+                }
+
+                Spacer()
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(isSelected ? Color.ccExport.opacity(0.1) : Color.ccSurface)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(
+                        isSelected ? Color.ccExport : Color.ccExclude,
+                        lineWidth: isSelected ? 2 : 1
+                    )
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Exporting State
@@ -127,25 +141,38 @@ struct ExportView: View {
         VStack(spacing: 20) {
             Spacer()
 
-            ProgressView(value: exportViewModel.progress) {
-                Text("Exporting…")
-                    .font(.headline)
-            } currentValueLabel: {
-                Text("\(Int(exportViewModel.progress * 100))%")
-                    .monospacedDigit()
-            }
+            Text("Exporting…")
+                .font(.title2.bold())
+                .foregroundStyle(Color.ccTextPrimary)
 
-            Text(exportViewModel.settings.mode == .lossless
-                 ? "Remuxing at original quality"
-                 : "Re-encoding video")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            // Progress bar (Design.md: 8pt tall, 4pt radius, Signal Blue fill)
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.ccSurface)
+                        .frame(height: 8)
+
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.ccExport)
+                        .frame(width: geometry.size.width * exportViewModel.progress, height: 8)
+                        .animation(.linear, value: exportViewModel.progress)
+                }
+            }
+            .frame(height: 8)
+            .padding(.horizontal, 32)
+
+            Text("\(Int(exportViewModel.progress * 100))%")
+                .font(.body)
+                .monospacedDigit()
+                .foregroundStyle(Color.ccTextSecondary)
 
             Spacer()
 
-            Button("Cancel Export", role: .destructive) {
+            // Cancel button (Design.md: Court Red text)
+            Button("Cancel Export") {
                 exportViewModel.cancelExport()
             }
+            .foregroundStyle(Color.ccDanger)
         }
     }
 
@@ -155,24 +182,44 @@ struct ExportView: View {
         VStack(spacing: 20) {
             Spacer()
 
+            // Checkmark (Design.md: 56pt, Rally Green, spring bounce)
             Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 64))
-                .foregroundStyle(.green)
+                .font(.system(size: 56))
+                .foregroundStyle(Color.ccInclude)
+                .symbolEffect(.bounce, value: exportViewModel.state)
 
-            Text("Export Complete!")
+            Text("Saved to Camera Roll")
                 .font(.title2.bold())
+                .foregroundStyle(Color.ccTextPrimary)
 
-            Text("Video saved to your photo library")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+            if let project = playerViewModel.project {
+                Text("\(TimeFormatter.format(project.includedDuration)) of highlights from \(TimeFormatter.format(playerViewModel.duration)) of footage")
+                    .font(.body)
+                    .foregroundStyle(Color.ccTextSecondary)
+                    .multilineTextAlignment(.center)
+            }
 
             Spacer()
 
-            Button("Done") {
+            // Done button (Design.md: Rally Green bg, white label)
+            Button {
+                HapticManager.exportComplete()
                 exportViewModel.reset()
                 dismiss()
+            } label: {
+                Text("Done")
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 52)
+                    .background(Color.ccInclude, in: RoundedRectangle(cornerRadius: 16))
             }
-            .buttonStyle(.borderedProminent)
+
+            // Share button (Design.md: text-only, Signal Blue)
+            Button("Share Video") {
+                // Future: UIActivityViewController via UIKit bridge
+            }
+            .foregroundStyle(Color.ccExport)
         }
     }
 
@@ -183,15 +230,16 @@ struct ExportView: View {
             Spacer()
 
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 64))
-                .foregroundStyle(.red)
+                .font(.system(size: 56))
+                .foregroundStyle(Color.ccDanger)
 
             Text("Export Failed")
                 .font(.title2.bold())
+                .foregroundStyle(Color.ccTextPrimary)
 
             Text(message)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .font(.body)
+                .foregroundStyle(Color.ccTextSecondary)
                 .multilineTextAlignment(.center)
 
             Spacer()
@@ -210,6 +258,7 @@ struct ExportView: View {
             }
         }
     }
+
 }
 
 // MARK: - Preview
