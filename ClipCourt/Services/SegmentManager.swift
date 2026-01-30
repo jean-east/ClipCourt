@@ -53,6 +53,12 @@ final class SegmentManager: SegmentManaging {
     /// initialize the timeline if preRecordingSegments was empty.
     private var recordingVideoDuration: Double?
 
+    /// If recording started inside an existing included segment, stores that
+    /// segment's original bounds. On stop, this entire range is first excluded
+    /// before the new keep is applied — so re-keeping a shorter portion properly
+    /// replaces the old longer one instead of merging back.
+    private var recordingOriginalIncludedRange: (start: Double, end: Double)?
+
     // MARK: - Computed Properties
 
     /// Total duration of all included segments, in seconds.
@@ -114,6 +120,11 @@ final class SegmentManager: SegmentManaging {
             }
             // BUG-016: If already included, no split needed — recordingStartTime is
             // stored above, so stopIncluding() will handle the full range replacement.
+            // Store the original segment's bounds so stopIncluding can exclude it
+            // before applying the new (potentially shorter) keep range.
+            if seg.isIncluded {
+                recordingOriginalIncludedRange = (start: seg.startTime, end: seg.endTime)
+            }
         } else if t >= (segments.last?.endTime ?? 0) {
             // Beyond all segments — extend to video end
             let lastEnd = segments.last?.endTime ?? 0
@@ -166,6 +177,12 @@ final class SegmentManager: SegmentManaging {
                     segments = baseline
                 }
             }
+            // If re-keeping inside an existing kept segment, first exclude the
+            // entire original segment so the new shorter keep replaces it cleanly
+            // instead of merging back with the leftover portions.
+            if let originalRange = recordingOriginalIncludedRange {
+                replaceRange(from: originalRange.start, to: originalRange.end, asIncluded: false)
+            }
             // BUG-016: Range replacement — overwrite all segments in [start, stop]
             // with a single included segment. Trim partially overlapping segments,
             // remove fully contained ones.
@@ -173,6 +190,7 @@ final class SegmentManager: SegmentManaging {
             recordingStartTime = nil
             preRecordingSegments = nil
             recordingVideoDuration = nil
+            recordingOriginalIncludedRange = nil
         } else {
             // Fallback: point-in-time split (e.g., restored session without recordingStartTime)
             if let index = segmentIndex(containing: time) {
@@ -265,6 +283,7 @@ final class SegmentManager: SegmentManaging {
         recordingStartTime = nil
         preRecordingSegments = nil
         recordingVideoDuration = nil
+        recordingOriginalIncludedRange = nil
     }
 
     /// Cap the last segment's endTime to the actual video duration
@@ -296,6 +315,7 @@ final class SegmentManager: SegmentManaging {
         recordingStartTime = nil
         preRecordingSegments = nil
         recordingVideoDuration = nil
+        recordingOriginalIncludedRange = nil
     }
 
     // MARK: - Private: Range Replacement (BUG-016)
@@ -310,7 +330,7 @@ final class SegmentManager: SegmentManaging {
     /// - Parameters:
     ///   - from: Start of the recorded range (seconds).
     ///   - to: End of the recorded range (seconds).
-    private func replaceRange(from: Double, to: Double) {
+    private func replaceRange(from: Double, to: Double, asIncluded: Bool = true) {
         let rangeStart = min(from, to)
         let rangeEnd = max(from, to)
 
@@ -349,9 +369,9 @@ final class SegmentManager: SegmentManaging {
             // else: fully contained within the range — remove (don't add)
         }
 
-        // Insert the new included segment for the recorded range
+        // Insert the replacement segment for the range
         newSegments.append(Segment(
-            startTime: rangeStart, endTime: rangeEnd, isIncluded: true
+            startTime: rangeStart, endTime: rangeEnd, isIncluded: asIncluded
         ))
 
         // Sort to maintain invariant
