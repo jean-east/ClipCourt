@@ -12,20 +12,21 @@
 
 ## 🏁 TestFlight Readiness Summary
 
-**✅ No P0/P1 blockers — ready for TestFlight.**
+**🚫 1 P1 blocker — NOT ready for TestFlight.**
 
-The app is functionally complete — video import, playback, toggle, timeline with pinch-to-zoom, landscape layout, export, and persistence all work. BUG-014 (P1 data-loss blocker) has been fixed (`bce7bf5`).
+BUG-016 (P1) is a core recording-model bug: re-recording over existing clips doesn't overwrite them. The fundamental tape-recorder interaction is broken — old segment fragments survive when the user records over them. This is a UX-breaking / data-integrity issue that will confuse every tester. Must fix before TestFlight.
 
-**Remaining: 0 blockers + 5 P2 (polish) + 3 P3 (cosmetic) = 8 open bugs.**
+**Remaining: 1 blocker + 5 P2 (polish) + 3 P3 (cosmetic) = 9 open bugs.**
 
-### Recommended Fix Order (pre-TestFlight polish)
-1. **BUG-013** (P2, Boss-filed) — Close button confirmation dialog. Safety-critical UX.
-2. **BUG-010** (P3, quick win) — Two green shades. Boss-filed, easy 5-min fix.
-3. **BUG-011** (P2, new) — Landscape missing "included duration" text. Easy add.
-4. **BUG-009** (P3, quick win) — Constants mismatch. 2-min cleanup.
-5. **BUG-006** (P2) — Full-area tap on import. Forgiving design.
-6. **BUG-007** (P2) — Custom scrub bar. Significant design spec delta.
-7. **BUG-012** (P3, new) — Animation/layout trigger mismatch. Minor inconsistency.
+### Recommended Fix Order (pre-TestFlight)
+1. **BUG-016** (P1, Boss-filed) — **BLOCKER.** Re-recording doesn't overwrite existing segments. Core recording model needs sweep-based replacement.
+2. **BUG-013** (P2, Boss-filed) — Close button confirmation dialog. Safety-critical UX.
+3. **BUG-010** (P3, quick win) — Two green shades. Boss-filed, easy 5-min fix.
+4. **BUG-011** (P2, new) — Landscape missing "included duration" text. Easy add.
+5. **BUG-009** (P3, quick win) — Constants mismatch. 2-min cleanup.
+6. **BUG-006** (P2) — Full-area tap on import. Forgiving design.
+7. **BUG-007** (P2) — Custom scrub bar. Significant design spec delta.
+8. **BUG-012** (P3, new) — Animation/layout trigger mismatch. Minor inconsistency.
 
 ### Defer to Post-TestFlight
 - **BUG-004** (P2) — Light mode. Design says "dark first." Gym/court users → dark is fine.
@@ -67,6 +68,53 @@ The app is functionally complete — video import, playback, toggle, timeline wi
   - **Option B (structural):** Change `beginIncluding()` so that the new included region only extends to the **next segment boundary** (not the end of the current excluded segment). This avoids creating the adjacent same-state condition entirely. E.g., if segments are `[Seg(0,55,excl), Seg(55,58,incl), ...]` and user begins at t=0, create `[Seg(0,55,incl), Seg(55,58,incl), ...]` — which would still merge. So Option A is likely cleaner.
   - **Option C (hybrid):** Add a "recording origin" marker to SegmentManager. During cleanup, never merge a segment that was just created by `beginIncluding` with pre-existing segments. Clear the marker on `stopIncluding`.
 - **PM Note:** This is the highest-priority bug. It's a silent data-loss issue — no error, no warning, the user's work simply vanishes. Blocks TestFlight.
+
+#### BUG-016: Re-recording over existing segments doesn't overwrite them (tape-recorder model broken) 🔥 BLOCKER
+- **Priority:** P1
+- **Status:** open
+- **Filed:** 2025-07-15 (Boss)
+- **File(s):** `Services/SegmentManager.swift` → `beginIncluding()`, `stopIncluding()`; `ViewModels/PlayerViewModel.swift` → `toggleInclude()`
+- **Description:** When a user seeks back into an existing included segment and starts recording again, the new recording session does NOT overwrite the segments it passes through. Old segment fragments survive, leaving the timeline in an incorrect state. The recording model should behave like a tape recorder — re-recording over existing clips erases and replaces them — but it doesn't.
+- **Steps to Reproduce:** (10s video)
+  1. Record from 0s to 3s → segments: `[Seg(0,3,incl), Seg(3,10,excl)]`
+  2. Record from 5s to 8s → segments: `[Seg(0,3,incl), Seg(3,5,excl), Seg(5,8,incl), Seg(8,10,excl)]`
+  3. Seek back to 2s (inside the first included clip), hit record.
+  4. Let playback run to 6s, hit stop. Let it play through.
+  5. **Expected:** The new recording from 2–6s overwrites everything in its path. Old segments that overlap are trimmed or removed. Result should include a contiguous included region from 2–6s (with old 0–2s remnant preserved and old 6–8s remnant preserved, merging as appropriate).
+  6. **Actual:** Two included segments remain: 0–3s and 5–6s. The 3–5s excluded gap was never touched. The 0–3s segment was never modified. Only the stop-point at 6s had any effect (trimming 5–8s to 5–6s).
+- **Root Cause (code-traced):**
+  The recording model is **point-in-time**, not **sweep-based**. Two separate problems combine:
+
+  **Problem 1 — `beginIncluding()` is a no-op inside an included segment:**
+  When `beginIncluding(at: 2, videoDuration: 10)` is called, `segmentIndex(containing: 2)` finds `Seg(0,3,incl)` at index 0. The method checks `seg.isIncluded` and returns early:
+  ```swift
+  if seg.isIncluded {
+      // Already including — no-op
+      return segments
+  }
+  ```
+  No recording session is started. No origin time is stored. The SegmentManager does nothing — yet `PlayerViewModel.toggleInclude()` sets `isIncluding = true` unconditionally after calling `beginIncluding()`, so the ViewModel *thinks* a recording is active.
+
+  **Problem 2 — No sweep logic between begin and stop:**
+  There is no mechanism to track or modify segments *between* the begin and stop points. `beginIncluding()` acts at one instant; `stopIncluding()` acts at another instant. Nothing connects them. The segments in the intervening range (the excluded gap at 3–5s, the included region at 5–8s) are invisible to the recording session.
+
+  When `stopIncluding(at: 6)` fires, it finds `Seg(5,8,incl)` and splits it — but it has no knowledge that the recording started at t=2 and should have overwritten everything from 2–6. It only acts on the single segment containing t=6.
+
+  **Execution trace:**
+  1. After steps 1–2: `[Seg(0,3,incl), Seg(3,5,excl), Seg(5,8,incl), Seg(8,10,excl)]`
+  2. `beginIncluding(at:2)` → Seg(0,3,incl) is already included → **no-op**
+  3. `stopIncluding(at:6)` → finds Seg(5,8,incl), splits at 6 → `[Seg(5,6,incl), Seg(6,8,excl)]`
+  4. `cleanup()` merges Seg(6,8,excl) + Seg(8,10,excl) → Seg(6,10,excl)
+  5. Final: `[Seg(0,3,incl), Seg(3,5,excl), Seg(5,6,incl), Seg(6,10,excl)]`
+  6. Included segments: **0–3s** and **5–6s** — matches Boss's report exactly.
+
+- **Expected (tape-recorder model):** When recording from t=2 to t=6, ALL segments in the range [2,6] should be replaced by a single included segment. Segments partially overlapping the range should be trimmed to the non-overlapping portion. Segments fully within the range should be removed.
+- **Fix Direction (PM recommendation — engineer to validate):**
+  - **Option A (recommended — recording origin):** Add a `recordingStartTime: Double?` property to `SegmentManager`. When `beginIncluding()` is called (even inside an already-included segment), store the start time instead of returning early. When `stopIncluding(at:)` is called and `recordingStartTime` is set, perform a **range replacement**: (1) trim/remove all segments overlapping `[recordingStartTime, stopTime]`, (2) insert a single new `Seg(recordingStartTime, stopTime, incl)`, (3) cleanup/merge. Clear `recordingStartTime` afterward.
+  - **Option B (continuous observer):** Add a time-observer in `PlayerViewModel` that fires periodically while `isIncluding == true`. On each tick, force the segment at `currentTime` to be included (splitting excluded segments as the playhead crosses them). More complex, introduces timing-dependent behavior, and harder to test. Not recommended.
+  - **Option C (hybrid):** Store origin in PlayerViewModel instead of SegmentManager, and pass both start and stop times to a new `replaceRange(from:to:)` method on SegmentManager. Keeps SegmentManager stateless but moves session tracking to the ViewModel.
+  - **PM strongly recommends Option A.** It keeps session tracking in SegmentManager (where segment logic belongs), is testable, and requires changes to only two methods (`beginIncluding` + `stopIncluding`). The BUG-014 fix (`cleanupWithoutMerge`) remains valid — it just needs to coexist with the new origin tracking.
+- **PM Note:** This is a core UX / data-integrity blocker. The fundamental recording interaction doesn't work as designed. Every user who tries to re-record over existing clips will hit this. Blocks TestFlight. Prioritize above all P2/P3 work.
 
 ---
 
