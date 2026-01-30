@@ -175,13 +175,24 @@ struct SegmentTimelineView: View {
         contentWidth: CGFloat,
         totalDuration: Double
     ) -> some View {
-        ZStack(alignment: .leading) {
+        // Viewport culling: only render segments visible in the scroll window.
+        // Adds 10% padding on each side to avoid pop-in during fast scrolling.
+        let visibleStartTime = (scrollOffset / contentWidth) * totalDuration
+        let visibleEndTime = ((scrollOffset + containerWidth) / contentWidth) * totalDuration
+        let cullPadding = (containerWidth * 0.1 / contentWidth) * totalDuration
+        let cullStart = max(visibleStartTime - cullPadding, 0)
+        let cullEnd = min(visibleEndTime + cullPadding, totalDuration)
+        let visibleSegments = viewModel.segments.filter { segment in
+            segment.endTime > cullStart && segment.startTime < cullEnd
+        }
+
+        return ZStack(alignment: .leading) {
             // Background bar (Design.md: ccSurface, 8pt corner radius)
             RoundedRectangle(cornerRadius: 8)
                 .fill(Color.ccSurface)
 
-            // Segment blocks
-            ForEach(viewModel.segments) { segment in
+            // Segment blocks (only visible segments rendered)
+            ForEach(visibleSegments) { segment in
                 // While keeping, show progressive green fill:
                 // - Segments between recordingStart and playhead show as green
                 //   (they'll be replaced by one keep segment on stop)
