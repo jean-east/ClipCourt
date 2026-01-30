@@ -26,6 +26,7 @@
 		C633238335AFC336FEAC97CC /* SegmentTimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08EB2BC4338E34B7DB6CDF31 /* SegmentTimelineView.swift */; };
 		F642A03D470276B869275A01 /* HapticManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76885899DCD6E4AE352AD452 /* HapticManager.swift */; };
 		F71EFEE84391C682E4EBCEC8 /* ExportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 177A4AD6326485D74653A5AC /* ExportView.swift */; };
+		D3E4F5A6B7C8091D2E3F4A5B /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4F5A6B7C809102D3E4F5A6C /* SettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -50,6 +51,7 @@
 		E126F2C8A98FCFDE58137D74 /* PersistenceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceService.swift; sourceTree = "<group>"; };
 		E4B2139241FDBCF0895CEF7E /* ClipCourt.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = ClipCourt.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F28AB2A68CD1B2FEE7B4A938 /* ExportViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportViewModel.swift; sourceTree = "<group>"; };
+		E4F5A6B7C809102D3E4F5A6C /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -132,6 +134,7 @@
 				2F61D4FB58965EF78CE60F8D /* ImportView.swift */,
 				11FCE306B888208BF281C836 /* PlayerView.swift */,
 				08EB2BC4338E34B7DB6CDF31 /* SegmentTimelineView.swift */,
+				E4F5A6B7C809102D3E4F5A6C /* SettingsView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -222,6 +225,7 @@
 				21B17B65D56C3FDB52064C08 /* Segment.swift in Sources */,
 				622FDF252BB2E8D52A256D01 /* SegmentManager.swift in Sources */,
 				C633238335AFC336FEAC97CC /* SegmentTimelineView.swift in Sources */,
+				D3E4F5A6B7C8091D2E3F4A5B /* SettingsView.swift in Sources */,
 				15D2361C43AFD42561505867 /* TimeFormatter.swift in Sources */,
 				69C7622D06EE92BC710EDA08 /* VideoPlayerService.swift in Sources */,
 			);

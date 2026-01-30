@@ -248,8 +248,12 @@ final class PlayerViewModel {
         isFastForwarding = true
         speedBeforeFastForward = playbackSpeed
 
-        // Fast forward at 2x — does NOT affect segment toggle state (per spec)
-        playerService.setRate(2.0)
+        // Read user-configured hold speed (default 2×)
+        let storedSpeed = UserDefaults.standard.double(forKey: "holdPlaybackSpeed")
+        let holdSpeed = storedSpeed > 0 ? Float(storedSpeed) : 2.0
+
+        // Fast forward — does NOT affect segment toggle state (per spec)
+        playerService.setRate(holdSpeed)
         if !isPlaying {
             playerService.play()
             isPlaying = true

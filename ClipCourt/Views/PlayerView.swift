@@ -16,7 +16,9 @@ struct PlayerView: View {
     @Environment(ExportViewModel.self) private var exportViewModel
     @Environment(\.verticalSizeClass) private var verticalSizeClass
 
-    @State private var showTimelineGuide = false
+    @State private var showSettings = false
+    @AppStorage("holdPlaybackSpeed") private var holdPlaybackSpeed: Double = 2.0
+    @AppStorage("keepingUIStyle") private var keepingUIStyle: String = "button"
 
     // MARK: - Computed
 
@@ -41,6 +43,10 @@ struct PlayerView: View {
         .animation(.easeInOut(duration: 0.35), value: isLandscape)
         .sheet(isPresented: $exportVM.showExportSheet) {
             ExportView()
+        }
+        .sheet(isPresented: $showSettings) {
+            SettingsView()
+                .presentationDetents([.medium, .large])
         }
         .alert("Error", isPresented: .init(
             get: { viewModel.errorMessage != nil },
@@ -73,14 +79,10 @@ struct PlayerView: View {
                     .padding(.top, 4)
 
                 // Segment Timeline (Design.md: 48pt portrait)
-                HStack(spacing: 6) {
-                    SegmentTimelineView()
-                        .frame(height: Constants.UI.timelineHeight)
-
-                    timelineInfoButton
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
+                SegmentTimelineView()
+                    .frame(height: Constants.UI.timelineHeight)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
 
                 // Playback Controls Row
                 playbackControlsRow
@@ -88,8 +90,8 @@ struct PlayerView: View {
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
 
-                // Toggle Button (72pt portrait)
-                toggleButton(height: 72)
+                // Keeping UI (72pt portrait)
+                keepingUI(height: 72)
                     .padding(.horizontal, 16)
                     .padding(.top, 12)
 
@@ -153,13 +155,9 @@ struct PlayerView: View {
                     .padding(.horizontal, 4)
 
                 // Segment timeline (36pt in landscape)
-                HStack(spacing: 4) {
-                    SegmentTimelineView()
-                        .frame(height: 36)
-
-                    timelineInfoButton
-                }
-                .padding(.horizontal, 4)
+                SegmentTimelineView()
+                    .frame(height: 36)
+                    .padding(.horizontal, 4)
 
                 // Playback controls (compact row)
                 HStack(spacing: 16) {
@@ -198,8 +196,8 @@ struct PlayerView: View {
                 // Speed selector
                 landscapeSpeedSelector
 
-                // Toggle button (48pt landscape — compact)
-                toggleButton(height: 48)
+                // Keeping UI (48pt landscape — compact)
+                keepingUI(height: 48)
                     .padding(.horizontal, 8)
 
                 // Export bar
@@ -225,7 +223,7 @@ struct PlayerView: View {
         if viewModel.isFastForwarding {
             HStack(spacing: 6) {
                 Image(systemName: "forward.fill")
-                Text("2×")
+                Text(fastForwardSpeedLabel)
                     .font(.title3.bold())
             }
             .foregroundStyle(Color.ccSpeed)
@@ -234,6 +232,13 @@ struct PlayerView: View {
             .background(.ultraThinMaterial, in: Capsule())
             .transition(.opacity.animation(.easeIn(duration: 0.15)))
         }
+    }
+
+    /// Formatted label for the current hold-to-fast-forward speed.
+    private var fastForwardSpeedLabel: String {
+        holdPlaybackSpeed.truncatingRemainder(dividingBy: 1) == 0
+            ? "\(Int(holdPlaybackSpeed))×"
+            : String(format: "%.1f×", holdPlaybackSpeed)
     }
 
     // Video border glow when including
@@ -449,6 +454,8 @@ struct PlayerView: View {
                     .foregroundStyle(Color.ccTextSecondary)
             }
 
+            settingsButton
+
             Spacer()
 
             if let project = viewModel.project {
@@ -473,6 +480,8 @@ struct PlayerView: View {
                     .font(.caption)
                     .foregroundStyle(Color.ccTextSecondary)
             }
+
+            settingsButton
 
             Spacer()
 
@@ -505,21 +514,77 @@ struct PlayerView: View {
         .opacity(viewModel.segments.filter(\.isIncluded).isEmpty ? 0.4 : 1.0)
     }
 
-    // MARK: - Timeline Info Guide
+    // MARK: - Settings Button
 
-    private var timelineInfoButton: some View {
+    private var settingsButton: some View {
         Button {
-            showTimelineGuide = true
+            showSettings = true
         } label: {
-            Image(systemName: "info.circle")
-                .font(.caption)
-                .foregroundStyle(Color.ccTextTertiary)
+            Image(systemName: "gearshape")
+                .font(.title3)
+                .foregroundStyle(Color.ccTextSecondary)
         }
-        .alert("Timeline Tips", isPresented: $showTimelineGuide) {
-            Button("Got it", role: .cancel) { }
-        } message: {
-            Text("• Tap to Keep — marks highlights as you watch\n• Tap the timeline to seek\n• Long-press a clip to remove or restore it\n• Pinch to zoom, drag to scroll")
+    }
+
+    // MARK: - Keeping UI (Button vs Slider)
+
+    /// Renders the appropriate keeping control based on user preference.
+    @ViewBuilder
+    private func keepingUI(height: CGFloat) -> some View {
+        if keepingUIStyle == "slider" {
+            keepingSlider(height: height)
+        } else {
+            toggleButton(height: height)
         }
+    }
+
+    /// Slider variant — a Toggle switch styled as a switch.
+    private func keepingSlider(height: CGFloat) -> some View {
+        Toggle(isOn: Binding(
+            get: { viewModel.isIncluding },
+            set: { _ in
+                if viewModel.isIncluding {
+                    HapticManager.toggleOff()
+                } else {
+                    HapticManager.toggleOn()
+                }
+                viewModel.toggleInclude()
+            }
+        )) {
+            HStack(spacing: 10) {
+                Image(systemName: viewModel.isIncluding ? "checkmark.circle.fill" : "circle")
+                    .font(.title3)
+                    .symbolEffect(.pulse, isActive: viewModel.isIncluding)
+
+                Text(viewModel.isIncluding ? "KEEPING" : "KEEP")
+                    .font(.headline)
+                    .fontWeight(viewModel.isIncluding ? .bold : .medium)
+            }
+            .foregroundStyle(viewModel.isIncluding ? Color.ccInclude : Color.ccTextSecondary)
+        }
+        .toggleStyle(.switch)
+        .tint(Color.ccInclude)
+        .padding(.horizontal, 16)
+        .frame(maxWidth: .infinity)
+        .frame(height: height)
+        .background(
+            viewModel.isIncluding
+                ? Color.ccInclude.opacity(0.15)
+                : Color.ccSurface
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .strokeBorder(
+                    viewModel.isIncluding ? Color.ccInclude : Color.ccExclude,
+                    lineWidth: viewModel.isIncluding ? 2.5 : 2
+                )
+        )
+        .shadow(
+            color: viewModel.isIncluding ? Color.ccInclude.opacity(0.4) : .clear,
+            radius: 8
+        )
+        .animation(.spring(response: 0.5, dampingFraction: 0.7), value: viewModel.isIncluding)
     }
 }
 
