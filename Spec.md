@@ -22,8 +22,14 @@ Playback *is* the editing process. You watch the video, toggle a "keep" switch d
 
 ### 1. Import
 - Pick a video from the device camera roll
-- Support landscape and portrait
 - One project at a time
+
+### 1a. Orientation Support
+- **Full landscape and portrait support** — both orientations are first-class citizens, not afterthoughts
+- App supports all four orientations: portrait, portrait upside-down (iPad), landscape left, landscape right
+- Rotation between orientations is animated and seamless
+- All controls, the toggle, the segment timeline, and the export flow must be fully functional in both orientations
+- Video player maintains aspect ratio in all orientations (letterboxed, never cropped)
 
 ### 2. Playback
 - Standard video playback with adjustable speed: **0.25x / 0.5x / 1x / 1.5x / 2x**

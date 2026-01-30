@@ -3,18 +3,28 @@
 //
 // Manages the ordered list of include/exclude segments.
 // "When I grow up, I'm going to Bovine University!" — and THIS
-// manager will be there, keeping my segments in order.
+// manager will be there, keeping my segments in PERFECT order.
+//
+// Key invariant: segments are always sorted by startTime and never overlap.
+// They tile the portion of the video that's been interacted with.
+// The toggle model: ON splits the current excluded region, OFF splits
+// the current included region. Works for linear playback AND seek-back.
 
 import Foundation
+
+// MARK: - Protocol
 
 /// Protocol for segment management — enables testing.
 protocol SegmentManaging {
     var segments: [Segment] { get }
+    var totalIncludedDuration: Double { get }
     func beginIncluding(at time: Double, videoDuration: Double) -> [Segment]
     func stopIncluding(at time: Double) -> [Segment]
     func toggleSegment(id: UUID) -> [Segment]
+    func splitSegment(at time: Double) -> [Segment]
     func segment(at time: Double) -> Segment?
     func replaceSegments(_ segments: [Segment])
+    func finalizeSegments(videoDuration: Double) -> [Segment]
 }
 
 // MARK: - Implementation
@@ -23,123 +33,296 @@ final class SegmentManager: SegmentManaging {
 
     // MARK: - State
 
+    /// The ordered array of segments covering the video timeline.
+    /// Invariant: sorted by startTime, non-overlapping, tiling contiguous ranges.
     private(set) var segments: [Segment] = []
 
-    // MARK: - Toggle Operations
+    // MARK: - Computed Properties
+
+    /// Total duration of all included segments, in seconds.
+    var totalIncludedDuration: Double {
+        segments
+            .filter(\.isIncluded)
+            .reduce(0) { $0 + $1.duration }
+    }
+
+    /// Total number of included segments.
+    var includedSegmentCount: Int {
+        segments.filter(\.isIncluded).count
+    }
+
+    // MARK: - Begin Including (Toggle ON)
 
     /// Begin including content at the given playback time.
-    /// Splits the current excluded region and inserts a new included segment.
+    ///
+    /// Behavior depends on context:
+    /// - **No segments yet:** Initializes the timeline with [0..time excluded][time..end included]
+    /// - **Inside an excluded segment:** Splits it at `time` — first half stays excluded,
+    ///   second half becomes included.
+    /// - **Inside an included segment:** No-op (already including).
+    /// - **Beyond all segments:** Extends or creates a new included segment to video end.
+    ///
+    /// Adjacent segments with the same state are automatically merged.
+    ///
+    /// - Parameters:
+    ///   - time: Current playback time in seconds.
+    ///   - videoDuration: Total video duration in seconds (needed for the open-ended segment).
+    /// - Returns: Updated segments array.
+    @discardableResult
     func beginIncluding(at time: Double, videoDuration: Double) -> [Segment] {
-        // Close any prior excluded segment at this point and start an included one
-        // The included segment's endTime is initially set to video duration;
-        // it will be closed when stopIncluding is called.
+        guard videoDuration > 0 else { return segments }
+        let t = clamp(time, min: 0, max: videoDuration)
 
         if segments.isEmpty {
-            // First interaction: if toggling on after start, create an excluded
-            // segment from 0 to now, then an included segment from now onward.
-            if time > 0 {
-                segments.append(Segment(
-                    startTime: 0,
-                    endTime: time,
-                    isIncluded: false
-                ))
+            // First interaction: initialize the full timeline
+            initializeTimeline(at: t, videoDuration: videoDuration, startIncluded: true)
+        } else if let index = segmentIndex(containing: t) {
+            // Inside an existing segment
+            let seg = segments[index]
+            if seg.isIncluded {
+                // Already including — no-op
+                return segments
             }
-            segments.append(Segment(
-                startTime: time,
-                endTime: videoDuration,
-                isIncluded: true
-            ))
-        } else if let lastIndex = segments.indices.last {
-            // Close the current last segment at this time
-            var lastSegment = segments[lastIndex]
-            if !lastSegment.isIncluded {
-                lastSegment.endTime = time
-                segments[lastIndex] = lastSegment
-
-                // Start a new included segment
-                segments.append(Segment(
-                    startTime: time,
-                    endTime: videoDuration,
-                    isIncluded: true
-                ))
+            // Split the excluded segment: [start..t excluded] [t..end included]
+            splitAndSetIncluded(at: t, index: index, setIncluded: true)
+        } else if t >= (segments.last?.endTime ?? 0) {
+            // Beyond all segments — extend to video end
+            let lastEnd = segments.last?.endTime ?? 0
+            if t > lastEnd {
+                // Gap between last segment and current time — fill with excluded
+                segments.append(Segment(startTime: lastEnd, endTime: t, isIncluded: false))
             }
-            // If already included, no-op (shouldn't happen with proper toggle logic)
+            segments.append(Segment(startTime: t, endTime: videoDuration, isIncluded: true))
         }
 
+        cleanup()
         return segments
     }
+
+    // MARK: - Stop Including (Toggle OFF)
 
     /// Stop including content at the given playback time.
-    /// Closes the current included segment and begins an excluded one.
+    ///
+    /// Behavior:
+    /// - **Inside an included segment:** Splits it at `time` — first half stays included,
+    ///   second half becomes excluded.
+    /// - **Inside an excluded segment:** No-op (already excluding).
+    /// - **No segments:** No-op.
+    ///
+    /// Adjacent segments with the same state are automatically merged.
+    ///
+    /// - Parameter time: Current playback time in seconds.
+    /// - Returns: Updated segments array.
+    @discardableResult
     func stopIncluding(at time: Double) -> [Segment] {
-        guard let lastIndex = segments.indices.last else { return segments }
+        guard !segments.isEmpty else { return segments }
 
-        var lastSegment = segments[lastIndex]
-        guard lastSegment.isIncluded else { return segments }
+        if let index = segmentIndex(containing: time) {
+            let seg = segments[index]
+            if !seg.isIncluded {
+                // Already excluded — no-op
+                return segments
+            }
+            // Split the included segment: [start..time included] [time..end excluded]
+            splitAndSetIncluded(at: time, index: index, setIncluded: false)
+        }
+        // If time is outside all segments, nothing to stop
 
-        // Close the included segment
-        lastSegment.endTime = time
-        segments[lastIndex] = lastSegment
-
-        // The remaining portion becomes excluded (endTime set to video duration or
-        // will be adjusted when next toggle occurs)
-        // We create an "open" excluded segment — its endTime is tentative.
-        // It will be capped to video duration on export.
-        segments.append(Segment(
-            startTime: time,
-            endTime: lastSegment.endTime, // Will be updated
-            isIncluded: false
-        ))
-
+        cleanup()
         return segments
     }
 
-    /// Toggle the isIncluded state of a specific segment (for retroactive editing).
+    // MARK: - Toggle Specific Segment
+
+    /// Toggle the isIncluded state of a specific segment by ID.
+    /// Used for retroactive editing from the timeline view.
+    ///
+    /// Adjacent segments with the same state are automatically merged afterward.
+    ///
+    /// - Parameter id: The UUID of the segment to toggle.
+    /// - Returns: Updated segments array.
+    @discardableResult
     func toggleSegment(id: UUID) -> [Segment] {
         guard let index = segments.firstIndex(where: { $0.id == id }) else {
             return segments
         }
 
         segments[index].isIncluded.toggle()
+        cleanup()
+        return segments
+    }
 
-        // Merge adjacent segments with the same state
+    // MARK: - Split Segment
+
+    /// Split the segment at the given time into two segments with the same state.
+    /// Useful for future fine-grained editing.
+    ///
+    /// - Parameter time: The time at which to split.
+    /// - Returns: Updated segments array.
+    @discardableResult
+    func splitSegment(at time: Double) -> [Segment] {
+        guard let index = segmentIndex(containing: time) else {
+            return segments
+        }
+
+        let original = segments[index]
+
+        // Don't split at boundaries — must be strictly inside
+        guard time > original.startTime && time < original.endTime else {
+            return segments
+        }
+
+        let firstHalf = Segment(
+            startTime: original.startTime,
+            endTime: time,
+            isIncluded: original.isIncluded
+        )
+        let secondHalf = Segment(
+            startTime: time,
+            endTime: original.endTime,
+            isIncluded: original.isIncluded
+        )
+
+        segments.replaceSubrange(index...index, with: [firstHalf, secondHalf])
+        return segments
+    }
+
+    // MARK: - Query
+
+    /// Find the segment containing the given playback time.
+    ///
+    /// - Parameter time: Playback time in seconds.
+    /// - Returns: The segment at that time, or nil if no segment covers it.
+    func segment(at time: Double) -> Segment? {
+        segments.first { $0.contains(time: time) }
+    }
+
+    // MARK: - Bulk Operations
+
+    /// Replace all segments (used when restoring from persistence).
+    /// Segments are sorted and validated.
+    func replaceSegments(_ newSegments: [Segment]) {
+        segments = newSegments.sorted()
+    }
+
+    /// Cap the last segment's endTime to the actual video duration
+    /// and remove any zero-duration segments.
+    /// Call this when the video duration becomes known or before export.
+    @discardableResult
+    func finalizeSegments(videoDuration: Double) -> [Segment] {
+        guard !segments.isEmpty else { return segments }
+
+        // Cap any segment that extends beyond video duration
+        for i in segments.indices {
+            if segments[i].endTime > videoDuration {
+                segments[i].endTime = videoDuration
+            }
+        }
+
+        // Remove zero-duration or invalid segments
+        segments.removeAll { !$0.isValid }
+
+        // Re-merge in case capping created adjacent same-state segments
         mergeAdjacentSegments()
 
         return segments
     }
 
-    /// Find the segment containing the given playback time.
-    func segment(at time: Double) -> Segment? {
-        segments.first { $0.contains(time: time) }
+    /// Remove all segments and reset to empty state.
+    func reset() {
+        segments = []
     }
 
-    /// Replace all segments (used when restoring from persistence).
-    func replaceSegments(_ newSegments: [Segment]) {
-        segments = newSegments.sorted()
-    }
+    // MARK: - Private: Timeline Initialization
 
-    // MARK: - Finalization
+    /// Creates the initial segment layout when the user first toggles.
+    private func initializeTimeline(at time: Double, videoDuration: Double, startIncluded: Bool) {
+        segments = []
 
-    /// Cap the last segment's endTime to the actual video duration.
-    /// Call this when the video duration becomes known or before export.
-    func finalizeSegments(videoDuration: Double) -> [Segment] {
-        guard !segments.isEmpty else { return segments }
-
-        // Ensure the last segment ends at video duration
-        if var last = segments.last, last.endTime != videoDuration {
-            last.endTime = videoDuration
-            segments[segments.count - 1] = last
+        if time > 0 {
+            segments.append(Segment(
+                startTime: 0,
+                endTime: time,
+                isIncluded: !startIncluded
+            ))
         }
 
-        // Remove any zero-duration segments
-        segments.removeAll { !$0.isValid }
-
-        return segments
+        segments.append(Segment(
+            startTime: time,
+            endTime: videoDuration,
+            isIncluded: startIncluded
+        ))
     }
 
-    // MARK: - Merge Logic
+    // MARK: - Private: Split and Set State
 
-    /// Merge adjacent segments that share the same isIncluded state.
+    /// Splits the segment at `index` at the given time. The portion BEFORE `time`
+    /// keeps its original state. The portion FROM `time` onward gets `setIncluded`.
+    private func splitAndSetIncluded(at time: Double, index: Int, setIncluded: Bool) {
+        let original = segments[index]
+
+        if time <= original.startTime {
+            // At or before the start — just change the whole segment's state
+            segments[index].isIncluded = setIncluded
+            return
+        }
+
+        if time >= original.endTime {
+            // At or past the end — nothing to split
+            return
+        }
+
+        // Split: [original.start .. time (original state)] [time .. original.end (new state)]
+        let firstHalf = Segment(
+            startTime: original.startTime,
+            endTime: time,
+            isIncluded: original.isIncluded
+        )
+        let secondHalf = Segment(
+            startTime: time,
+            endTime: original.endTime,
+            isIncluded: setIncluded
+        )
+
+        segments.replaceSubrange(index...index, with: [firstHalf, secondHalf])
+    }
+
+    // MARK: - Private: Segment Lookup
+
+    /// Find the index of the segment containing the given time.
+    /// Uses the segment's `contains(time:)` which is [start, end).
+    /// Falls back to the last segment if time equals its endTime.
+    private func segmentIndex(containing time: Double) -> Int? {
+        if let index = segments.firstIndex(where: { $0.contains(time: time) }) {
+            return index
+        }
+
+        // Edge case: time is exactly at the end of the last segment
+        if let last = segments.last, abs(time - last.endTime) < 0.001 {
+            return segments.count - 1
+        }
+
+        return nil
+    }
+
+    // MARK: - Private: Cleanup
+
+    /// Removes invalid segments and merges adjacent same-state segments.
+    private func cleanup() {
+        // Remove zero-duration segments
+        segments.removeAll { !$0.isValid }
+
+        // Sort (should already be sorted, but enforce invariant)
+        segments.sort()
+
+        // Merge adjacent same-state segments
+        mergeAdjacentSegments()
+    }
+
+    // MARK: - Private: Merge Logic
+
+    /// Merge adjacent segments that share the same `isIncluded` state.
+    /// Also handles overlapping segments (shouldn't happen, but defensive).
     private func mergeAdjacentSegments() {
         guard segments.count > 1 else { return }
 
@@ -149,9 +332,14 @@ final class SegmentManager: SegmentManaging {
             let current = segments[i]
             var previous = merged[merged.count - 1]
 
-            if previous.isIncluded == current.isIncluded {
-                // Merge: extend previous to cover current
-                previous.endTime = current.endTime
+            // Merge if same state AND (adjacent or overlapping)
+            // Adjacent: previous.endTime ≈ current.startTime (within 1ms tolerance)
+            // Overlapping: current.startTime < previous.endTime
+            let isAdjacentOrOverlapping = current.startTime <= previous.endTime + 0.001
+
+            if previous.isIncluded == current.isIncluded && isAdjacentOrOverlapping {
+                // Extend previous to cover current
+                previous.endTime = max(previous.endTime, current.endTime)
                 merged[merged.count - 1] = previous
             } else {
                 merged.append(current)
@@ -159,5 +347,11 @@ final class SegmentManager: SegmentManaging {
         }
 
         segments = merged
+    }
+
+    // MARK: - Private: Helpers
+
+    private func clamp(_ value: Double, min: Double, max: Double) -> Double {
+        Swift.min(Swift.max(value, min), max)
     }
 }

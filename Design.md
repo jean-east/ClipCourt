@@ -205,16 +205,50 @@ The sideways one! I like when the phone goes on its tummy.
 
 | Element | Frame | Notes |
 |---------|-------|-------|
-| **Video Player** | Width: ~70% of screen · Height: fills available above bottom strip | Aspect-fit, centered |
-| **Right Panel** | Width: ~30% · Padding: 16pt all sides | Toggle state, controls, toggle button, export |
-| **Bottom Strip** | Height: 80pt total | Contains scrub bar (top 44pt) + segment timeline (bottom 36pt) |
-| **Toggle Button (landscape)** | Height: 56pt · Full panel width minus 16pt padding | Slightly shorter in landscape |
+| **Video Player** | Width: ~70% of screen · Height: fills available above bottom strip | Aspect-fit, centered, letterboxed with `#0A0A0F` |
+| **Right Panel** | Width: ~30% · Padding: 16pt all sides | Vertically stacked: status → controls → toggle → export |
+| **Bottom Strip** | Height: 80pt total | Full width. Contains scrub bar (top 44pt) + segment timeline (bottom 36pt). Pinch-to-zoom still works here. |
+| **Toggle Button (landscape)** | Height: 56pt · Full panel width minus 32pt padding | Slightly shorter in landscape but still prominent |
+
+### Right Panel Layout (top to bottom in landscape)
+
+```
+┌───────────────┐
+│ ◉ RECORDING   │  ← Status indicator + timestamp
+│ 14:52 / 35:20 │
+├───────────────┤
+│               │
+│  [⏪] [▶] [⏩] │  ← Playback controls (compact row)
+│    [1x ▾]     │  ← Speed selector below
+│               │
+├───────────────┤
+│ ╔═══════════╗ │
+│ ║  ● TOGGLE ║ │  ← Toggle button (full panel width)
+│ ╚═══════════╝ │
+├───────────────┤
+│   [Export ↗]  │  ← Export button (right-aligned or centered)
+└───────────────┘
+```
+
+| Right Panel Element | Detail |
+|---------------------|--------|
+| **Status indicator** | Same as portrait — toggle dot + "RECORDING"/"PAUSED" label. Timestamp below. |
+| **Controls** | Skip back, play/pause, skip forward in a tight row (36pt icons, 40pt tap targets). Speed pill centered below. |
+| **Toggle button** | 56pt tall, full panel width minus 32pt. Same green glow, haptics, and animation as portrait. |
+| **Export button** | 44pt tall pill, centered in panel. Same Signal Blue style. |
+| **Spacing** | Status → Controls: 12pt. Controls → Toggle: 16pt. Toggle → Export: 12pt. |
+| **Vertical alignment** | Content is vertically centered in the available panel height |
 
 ### Adaptive Behavior
 - Transition between portrait/landscape is **animated** (0.35s ease-in-out)
-- Video player maintains aspect ratio; never crops
-- Toggle button remains prominent in both orientations — always the largest interactive element
+- UI layout switches based on `horizontalSizeClass` and `verticalSizeClass` — NOT device rotation alone (supports split view on iPad)
+- Video player maintains aspect ratio; never crops, letterboxed in `#0A0A0F`
+- Toggle button remains prominent in both orientations — always the largest interactive element in its context
+- Segment timeline pinch-to-zoom works identically in landscape (full-width bottom strip gives even more space)
 - On **iPad**: Same landscape layout is used in all orientations (side panel always visible); video player area is larger
+- **Empty state in landscape**: Same centered layout, but icon + text + button are horizontally centered in the full screen
+- **Export sheet in landscape**: Presented as a `.sheet` — iOS handles landscape presentation natively. Content remains centered and readable.
+- **Safe areas**: All content respects landscape safe areas (notch/Dynamic Island cutouts on left/right)
 
 ---
 
