@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg5" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#101018"/>
+      <stop offset="100%" stop-color="#0A0A0F"/>
+    </linearGradient>
+    <clipPath id="iosClip5">
+      <rect width="1024" height="1024" rx="224" ry="224"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#iosClip5)">
+    <!-- Background -->
+    <rect width="1024" height="1024" fill="url(#bg5)"/>
+
+    <!-- Half-court boundary — outer rectangle (partial, fading into edges) -->
+    <rect x="160" y="200" width="704" height="624" rx="12" fill="none" stroke="#1E1E2A" stroke-width="10"/>
+
+    <!-- Center line -->
+    <line x1="160" y1="512" x2="864" y2="512" stroke="#30D158" stroke-width="10"/>
+
+    <!-- Center circle -->
+    <circle cx="512" cy="512" r="140" fill="none" stroke="#30D158" stroke-width="10"/>
+
+    <!-- Free throw / key area — top -->
+    <rect x="352" y="200" width="320" height="200" rx="8" fill="none" stroke="#1E1E2A" stroke-width="8"/>
+    <!-- Free throw arc — top -->
+    <path d="M352,400 A160,160 0 0 0 672,400" fill="none" stroke="#1E1E2A" stroke-width="8"/>
+
+    <!-- Free throw / key area — bottom -->
+    <rect x="352" y="624" width="320" height="200" rx="8" fill="none" stroke="#1E1E2A" stroke-width="8"/>
+    <!-- Free throw arc — bottom -->
+    <path d="M352,624 A160,160 0 0 1 672,624" fill="none" stroke="#1E1E2A" stroke-width="8"/>
+
+    <!-- Three-point arcs (simplified) — top -->
+    <path d="M240,200 L240,320 A280,280 0 0 0 784,320 L784,200" fill="none" stroke="#1E1E2A" stroke-width="6"/>
+    <!-- Three-point arcs — bottom -->
+    <path d="M240,824 L240,704 A280,280 0 0 1 784,704 L784,824" fill="none" stroke="#1E1E2A" stroke-width="6"/>
+
+    <!-- Play button in center circle — the "clip" action -->
+    <polygon points="480,468 480,556 556,512" fill="#30D158"/>
+
+    <!-- Highlight glow on center -->
+    <circle cx="512" cy="512" r="142" fill="none" stroke="#30D158" stroke-width="4" opacity="0.25"/>
+  </g>
+</svg>

@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg4" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#101018"/>
+      <stop offset="100%" stop-color="#0A0A0F"/>
+    </linearGradient>
+    <clipPath id="iosClip4">
+      <rect width="1024" height="1024" rx="224" ry="224"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#iosClip4)">
+    <!-- Background -->
+    <rect width="1024" height="1024" fill="url(#bg4)"/>
+
+    <!-- Viewfinder corner brackets — thick, bold strokes -->
+    <!-- Top-left -->
+    <path d="M240,380 L240,260 L360,260" fill="none" stroke="#F2F2F7" stroke-width="48" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Top-right -->
+    <path d="M664,260 L784,260 L784,380" fill="none" stroke="#F2F2F7" stroke-width="48" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Bottom-right -->
+    <path d="M784,644 L784,764 L664,764" fill="none" stroke="#F2F2F7" stroke-width="48" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Bottom-left -->
+    <path d="M360,764 L240,764 L240,644" fill="none" stroke="#F2F2F7" stroke-width="48" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- Recording dot — green, prominent -->
+    <circle cx="512" cy="512" r="100" fill="#30D158"/>
+    <!-- Inner pulse ring -->
+    <circle cx="512" cy="512" r="140" fill="none" stroke="#30D158" stroke-width="8" opacity="0.4"/>
+
+    <!-- REC label -->
+    <text x="512" y="830" text-anchor="middle" font-family="SF Pro Display, Helvetica Neue, Arial, sans-serif" font-weight="800" font-size="72" fill="#30D158" letter-spacing="12">REC</text>
+  </g>
+</svg>

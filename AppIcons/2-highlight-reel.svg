@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#101018"/>
+      <stop offset="100%" stop-color="#0A0A0F"/>
+    </linearGradient>
+    <clipPath id="iosClip2">
+      <rect width="1024" height="1024" rx="224" ry="224"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#iosClip2)">
+    <!-- Background -->
+    <rect width="1024" height="1024" fill="url(#bg2)"/>
+
+    <!-- Segmented ring — 5 arcs with gaps -->
+    <!-- Arc 1: green, top-right -->
+    <path d="M512 152 A360 360 0 0 1 842 372" fill="none" stroke="#30D158" stroke-width="64" stroke-linecap="round"/>
+    <!-- Arc 2: dark, right -->
+    <path d="M862 420 A360 360 0 0 1 762 752" fill="none" stroke="#1E1E2A" stroke-width="64" stroke-linecap="round"/>
+    <!-- Arc 3: green, bottom -->
+    <path d="M720 790 A360 360 0 0 1 304 790" fill="none" stroke="#30D158" stroke-width="64" stroke-linecap="round"/>
+    <!-- Arc 4: dark, left -->
+    <path d="M262 752 A360 360 0 0 1 162 420" fill="none" stroke="#1E1E2A" stroke-width="64" stroke-linecap="round"/>
+    <!-- Arc 5: green, top-left -->
+    <path d="M182 372 A360 360 0 0 1 464 155" fill="none" stroke="#30D158" stroke-width="64" stroke-linecap="round"/>
+
+    <!-- Center play button -->
+    <polygon points="448,380 448,644 660,512" fill="#F2F2F7"/>
+  </g>
+</svg>
