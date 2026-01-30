@@ -20,6 +20,8 @@ protocol SegmentManaging {
     var totalIncludedDuration: Double { get }
     func beginIncluding(at time: Double, videoDuration: Double) -> [Segment]
     func stopIncluding(at time: Double) -> [Segment]
+    func beginExcluding(at time: Double) -> [Segment]
+    func stopExcluding(at time: Double) -> [Segment]
     func toggleSegment(id: UUID) -> [Segment]
     func splitSegment(at time: Double) -> [Segment]
     func segment(at time: Double) -> Segment?
@@ -52,6 +54,14 @@ final class SegmentManager: SegmentManaging {
     /// Video duration stored from `beginIncluding()` so `stopIncluding()` can
     /// initialize the timeline if preRecordingSegments was empty.
     private var recordingVideoDuration: Double?
+
+    /// Tracks where "active exclusion" started — when recording is toggled OFF,
+    /// playback through existing included segments should erase them.
+    /// Set by `beginExcluding()`, consumed by `stopExcluding()`.
+    private var excludingStartTime: Double?
+
+    /// Snapshot of segments before exclusion began.
+    private var preExcludingSegments: [Segment]?
 
     // MARK: - Computed Properties
 
@@ -204,6 +214,53 @@ final class SegmentManager: SegmentManaging {
         return segments
     }
 
+    // MARK: - Begin Excluding (Active Erase)
+
+    /// Begin actively excluding content at the given playback time.
+    /// Called when recording is toggled OFF. As the video plays forward through
+    /// existing included segments, they will be erased when `stopExcluding()` is called.
+    ///
+    /// - Parameter time: Current playback time in seconds.
+    /// - Returns: Updated segments array (unchanged — exclusion is deferred to stop).
+    @discardableResult
+    func beginExcluding(at time: Double) -> [Segment] {
+        excludingStartTime = time
+        preExcludingSegments = segments.map { $0 }
+        return segments
+    }
+
+    // MARK: - Stop Excluding (Toggle ON again or video ends)
+
+    /// Stop actively excluding content. Replaces all segments in the range
+    /// `[excludingStartTime, time]` with a single EXCLUDED segment.
+    /// This erases any included segments the playhead passed through while
+    /// recording was off.
+    ///
+    /// - Parameter time: Current playback time in seconds.
+    /// - Returns: Updated segments array.
+    @discardableResult
+    func stopExcluding(at time: Double) -> [Segment] {
+        guard let startTime = excludingStartTime else { return segments }
+
+        // Restore pre-exclusion baseline
+        if let baseline = preExcludingSegments {
+            segments = baseline
+        }
+
+        let rangeStart = min(startTime, time)
+        let rangeEnd = max(startTime, time)
+
+        if rangeEnd > rangeStart {
+            replaceRange(from: rangeStart, to: rangeEnd, asIncluded: false)
+        }
+
+        excludingStartTime = nil
+        preExcludingSegments = nil
+
+        cleanup()
+        return segments
+    }
+
     // MARK: - Toggle Specific Segment
 
     /// Toggle the isIncluded state of a specific segment by ID.
@@ -278,6 +335,8 @@ final class SegmentManager: SegmentManaging {
         recordingStartTime = nil
         preRecordingSegments = nil
         recordingVideoDuration = nil
+        excludingStartTime = nil
+        preExcludingSegments = nil
     }
 
     /// Cap the last segment's endTime to the actual video duration
@@ -309,11 +368,13 @@ final class SegmentManager: SegmentManaging {
         recordingStartTime = nil
         preRecordingSegments = nil
         recordingVideoDuration = nil
+        excludingStartTime = nil
+        preExcludingSegments = nil
     }
 
     // MARK: - Private: Range Replacement (BUG-016)
 
-    /// Replace all segments overlapping the range `[from, to]` with a single included segment.
+    /// Replace all segments overlapping the range `[from, to]` with a single segment.
     ///
     /// Segments fully inside the range are removed. Segments partially overlapping are
     /// trimmed to the non-overlapping portion. Segments fully containing the range are
@@ -321,13 +382,14 @@ final class SegmentManager: SegmentManaging {
     /// recording over existing clips erases and replaces them.
     ///
     /// - Parameters:
-    ///   - from: Start of the recorded range (seconds).
-    ///   - to: End of the recorded range (seconds).
-    private func replaceRange(from: Double, to: Double) {
+    ///   - from: Start of the range (seconds).
+    ///   - to: End of the range (seconds).
+    ///   - asIncluded: Whether the replacement segment is included (true) or excluded (false).
+    private func replaceRange(from: Double, to: Double, asIncluded: Bool = true) {
         let rangeStart = min(from, to)
         let rangeEnd = max(from, to)
 
-        // Zero-length recording — nothing to replace
+        // Zero-length range — nothing to replace
         guard rangeEnd > rangeStart else { return }
 
         var newSegments: [Segment] = []
@@ -362,9 +424,9 @@ final class SegmentManager: SegmentManaging {
             // else: fully contained within the range — remove (don't add)
         }
 
-        // Insert the new included segment for the recorded range
+        // Insert the replacement segment for the range
         newSegments.append(Segment(
-            startTime: rangeStart, endTime: rangeEnd, isIncluded: true
+            startTime: rangeStart, endTime: rangeEnd, isIncluded: asIncluded
         ))
 
         // Sort to maintain invariant
