@@ -174,12 +174,17 @@ struct PlayerView: View {
                             .frame(width: 40, height: 40)
                     }
 
-                    // Play/Pause
+                    // Play/Pause/Restart
                     Button {
-                        HapticManager.playPause()
-                        viewModel.togglePlayPause()
+                        if viewModel.isAtEnd {
+                            HapticManager.playPause()
+                            viewModel.restart()
+                        } else {
+                            HapticManager.playPause()
+                            viewModel.togglePlayPause()
+                        }
                     } label: {
-                        Image(systemName: viewModel.isPlaying ? "pause.fill" : "play.fill")
+                        Image(systemName: viewModel.isAtEnd ? "arrow.counterclockwise" : (viewModel.isPlaying ? "pause.fill" : "play.fill"))
                             .font(.title3)
                             .foregroundStyle(Color.ccTextPrimary)
                             .contentTransition(.symbolEffect(.replace.downUp))
@@ -295,10 +300,15 @@ struct PlayerView: View {
             Spacer()
 
             Button {
-                HapticManager.playPause()
-                viewModel.togglePlayPause()
+                if viewModel.isAtEnd {
+                    HapticManager.playPause()
+                    viewModel.restart()
+                } else {
+                    HapticManager.playPause()
+                    viewModel.togglePlayPause()
+                }
             } label: {
-                Image(systemName: viewModel.isPlaying ? "pause.fill" : "play.fill")
+                Image(systemName: viewModel.isAtEnd ? "arrow.counterclockwise" : (viewModel.isPlaying ? "pause.fill" : "play.fill"))
                     .font(.title)
                     .foregroundStyle(Color.ccTextPrimary)
                     .contentTransition(.symbolEffect(.replace.downUp))

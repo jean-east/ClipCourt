@@ -44,6 +44,7 @@ final class PlayerViewModel {
 
     var hasActiveProject: Bool = false
     var isPlaying: Bool = false
+    var isAtEnd: Bool = false
     var isIncluding: Bool = false
     var currentTime: Double = 0
     var duration: Double = 0
@@ -106,6 +107,7 @@ final class PlayerViewModel {
     /// Resets playback state and finalizes any open segment.
     private func handleVideoDidPlayToEnd() {
         isPlaying = false
+        isAtEnd = true
 
         // If user was including (toggle ON), close the open segment at video end
         if isIncluding {
@@ -201,9 +203,19 @@ final class PlayerViewModel {
     }
 
     func seek(to time: Double) {
+        isAtEnd = false
         Task {
             await playerService.seek(to: time)
             currentTime = time
+        }
+    }
+
+    /// Restart playback from the beginning.
+    func restart() {
+        isAtEnd = false
+        seek(to: 0)
+        if !isPlaying {
+            togglePlayPause()
         }
     }
 
