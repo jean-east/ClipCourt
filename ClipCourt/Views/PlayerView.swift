@@ -28,9 +28,9 @@ struct PlayerView: View {
     var body: some View {
         @Bindable var exportVM = exportViewModel
 
-        Group {
-            if isLandscape {
-                landscapeLayout
+        GeometryReader { outerProxy in
+            if outerProxy.size.width > outerProxy.size.height {
+                landscapeLayout(size: outerProxy.size)
             } else {
                 portraitLayout
             }
@@ -99,106 +99,101 @@ struct PlayerView: View {
 
     // MARK: - Landscape Layout (Design.md § Layout — Landscape)
 
-    private var landscapeLayout: some View {
-        GeometryReader { geometry in
-            VStack(spacing: 0) {
-                // --- Top section: Video (left ~70%) + Right Panel (~30%) ---
-                HStack(spacing: 0) {
-                    // Video Player — fills left portion
-                    videoPlayerSection
-                        .overlay(alignment: .center) { fastForwardOverlay }
-                        .overlay { videoGlowBorder }
-                        .frame(width: geometry.size.width * 0.7)
+    private func landscapeLayout(size: CGSize) -> some View {
+        HStack(spacing: 0) {
+            // Left 70%: Video player (full height)
+            videoPlayerSection
+                .overlay(alignment: .center) { fastForwardOverlay }
+                .overlay { videoGlowBorder }
+                .frame(width: size.width * 0.7)
+                .frame(maxHeight: .infinity)
+                .clipped()
 
-                    // Right Panel — controls
-                    landscapeRightPanel
-                        .frame(width: geometry.size.width * 0.3)
-                }
-
-                // --- Bottom Strip (80pt): Scrub Bar + Timeline ---
-                VStack(spacing: 0) {
-                    scrubBar
-                        .padding(.horizontal, 16)
-                        .frame(height: 44)
-
-                    SegmentTimelineView()
-                        .frame(height: 36)
-                        .padding(.horizontal, 16)
-                }
-                .frame(height: 80)
-            }
+            // Right 30%: All controls in scrollable column
+            landscapeRightPanel
+                .frame(width: size.width * 0.3)
+                .frame(maxHeight: .infinity)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: - Landscape Right Panel (Design.md § Right Panel Layout)
 
     private var landscapeRightPanel: some View {
-        VStack(spacing: 12) {
-            Spacer()
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(spacing: 10) {
+                // Status indicator + timestamp
+                VStack(spacing: 4) {
+                    HStack(spacing: 6) {
+                        Image(systemName: viewModel.isIncluding ? "record.circle" : "circle")
+                            .font(.caption)
+                            .foregroundStyle(viewModel.isIncluding ? Color.ccInclude : Color.ccTextSecondary)
+                            .symbolEffect(.pulse, isActive: viewModel.isIncluding)
 
-            // Status indicator + timestamp
-            VStack(spacing: 4) {
-                HStack(spacing: 6) {
-                    Image(systemName: viewModel.isIncluding ? "record.circle" : "circle")
+                        Text(viewModel.isIncluding ? "RECORDING" : "PAUSED")
+                            .font(.caption.bold())
+                            .tracking(1.5)
+                            .foregroundStyle(viewModel.isIncluding ? Color.ccInclude : Color.ccTextSecondary)
+                    }
+
+                    Text("\(TimeFormatter.format(viewModel.currentTime)) / \(TimeFormatter.format(viewModel.duration))")
                         .font(.caption)
-                        .foregroundStyle(viewModel.isIncluding ? Color.ccInclude : Color.ccTextSecondary)
-                        .symbolEffect(.pulse, isActive: viewModel.isIncluding)
-
-                    Text(viewModel.isIncluding ? "RECORDING" : "PAUSED")
-                        .font(.caption.bold())
-                        .tracking(1.5)
-                        .foregroundStyle(viewModel.isIncluding ? Color.ccInclude : Color.ccTextSecondary)
-                }
-
-                Text("\(TimeFormatter.format(viewModel.currentTime)) / \(TimeFormatter.format(viewModel.duration))")
-                    .font(.caption)
-                    .monospacedDigit()
-                    .foregroundStyle(Color.ccTextSecondary)
-            }
-
-            // Playback controls (compact row)
-            HStack(spacing: 16) {
-                // Skip Back 15s
-                Button {
-                    HapticManager.skip()
-                    viewModel.seek(to: max(0, viewModel.currentTime - 15))
-                } label: {
-                    Image(systemName: "gobackward.15")
-                        .font(.body)
+                        .monospacedDigit()
                         .foregroundStyle(Color.ccTextSecondary)
-                        .frame(width: 40, height: 40)
                 }
 
-                // Play/Pause
-                Button {
-                    HapticManager.playPause()
-                    viewModel.togglePlayPause()
-                } label: {
-                    Image(systemName: viewModel.isPlaying ? "pause.fill" : "play.fill")
-                        .font(.title3)
-                        .foregroundStyle(Color.ccTextPrimary)
-                        .contentTransition(.symbolEffect(.replace.downUp))
-                        .frame(width: 44, height: 44)
+                // Scrub bar
+                scrubBar
+                    .padding(.horizontal, 4)
+
+                // Segment timeline (36pt in landscape)
+                SegmentTimelineView()
+                    .frame(height: 36)
+                    .padding(.horizontal, 4)
+
+                // Playback controls (compact row)
+                HStack(spacing: 16) {
+                    // Skip Back 15s
+                    Button {
+                        HapticManager.skip()
+                        viewModel.seek(to: max(0, viewModel.currentTime - 15))
+                    } label: {
+                        Image(systemName: "gobackward.15")
+                            .font(.body)
+                            .foregroundStyle(Color.ccTextSecondary)
+                            .frame(width: 40, height: 40)
+                    }
+
+                    // Play/Pause
+                    Button {
+                        HapticManager.playPause()
+                        viewModel.togglePlayPause()
+                    } label: {
+                        Image(systemName: viewModel.isPlaying ? "pause.fill" : "play.fill")
+                            .font(.title3)
+                            .foregroundStyle(Color.ccTextPrimary)
+                            .contentTransition(.symbolEffect(.replace.downUp))
+                            .frame(width: 44, height: 44)
+                    }
+
+                    // Skip Forward 15s / Fast Forward
+                    skipForwardButton(iconSize: .body, frameSize: 40)
                 }
 
-                // Skip Forward 15s / Fast Forward
-                skipForwardButton(iconSize: .body, frameSize: 40)
+                // Speed selector
+                landscapeSpeedSelector
+
+                // Toggle button (48pt landscape — compact)
+                toggleButton(height: 48)
+                    .padding(.horizontal, 8)
+
+                // Export bar
+                landscapeExportButton
+                    .padding(.horizontal, 8)
             }
-
-            // Speed selector
-            landscapeSpeedSelector
-
-            // Toggle button (56pt landscape)
-            toggleButton(height: 56)
-                .padding(.horizontal, 16)
-
-            // Export button
-            landscapeExportButton
-                .padding(.horizontal, 16)
-
-            Spacer()
+            .padding(.vertical, 12)
+            .padding(.horizontal, 8)
         }
-        .padding(.horizontal, 8)
     }
 
     // MARK: - Shared Components
