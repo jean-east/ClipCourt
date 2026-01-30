@@ -62,7 +62,9 @@ final class SegmentManager: SegmentManaging {
     /// - **Inside an included segment:** No-op (already including).
     /// - **Beyond all segments:** Extends or creates a new included segment to video end.
     ///
-    /// Adjacent segments with the same state are automatically merged.
+    /// Adjacent same-state segments may temporarily coexist during active recording.
+    /// They are merged when the recording closes (stopIncluding, toggleSegment,
+    /// or finalizeSegments). This preserves pre-existing segment boundaries. (BUG-014)
     ///
     /// - Parameters:
     ///   - time: Current playback time in seconds.
@@ -95,7 +97,10 @@ final class SegmentManager: SegmentManaging {
             segments.append(Segment(startTime: t, endTime: videoDuration, isIncluded: true))
         }
 
-        cleanup()
+        // BUG-014 fix: only remove zero-duration segments and sort.
+        // Skip mergeAdjacentSegments() to preserve existing segment boundaries
+        // while a recording is in progress.
+        cleanupWithoutMerge()
         return segments
     }
 
@@ -309,14 +314,24 @@ final class SegmentManager: SegmentManaging {
 
     /// Removes invalid segments and merges adjacent same-state segments.
     private func cleanup() {
+        cleanupWithoutMerge()
+
+        // Merge adjacent same-state segments
+        mergeAdjacentSegments()
+    }
+
+    /// Lightweight cleanup: removes zero-duration segments and sorts,
+    /// but does NOT merge adjacent same-state segments.
+    ///
+    /// Used during `beginIncluding()` to preserve segment boundaries while
+    /// a recording is in progress. Merging is deferred to `stopIncluding()`,
+    /// `toggleSegment()`, and `finalizeSegments()`. (BUG-014 fix)
+    private func cleanupWithoutMerge() {
         // Remove zero-duration segments
         segments.removeAll { !$0.isValid }
 
         // Sort (should already be sorted, but enforce invariant)
         segments.sort()
-
-        // Merge adjacent same-state segments
-        mergeAdjacentSegments()
     }
 
     // MARK: - Private: Merge Logic
