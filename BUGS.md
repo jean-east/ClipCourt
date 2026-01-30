@@ -157,6 +157,16 @@ The app is functionally complete — video import, playback, toggle, timeline wi
 - **Expected:** All included segments should appear visually consistent. Use a different cue for "current segment" — e.g., brighter border, opacity pulse, or overlay glow — rather than changing the fill color.
 - **Fix:** Change `segmentFillColor` to return `Color.ccInclude` for all included segments, and add a subtle overlay or border for the current one. ~10 lines.
 
+#### BUG-015: White/miscolored bars on import screen (top and bottom corners) ⭐ NEW
+- **Priority:** P2
+- **Status:** open
+- **Filed:** 2025-07-13 (Boss — screenshot)
+- **File(s):** `Views/ImportView.swift`, `ClipCourtApp.swift`
+- **Description:** The import/empty-state screen shows a white bar at the very top (behind the status bar notch area) and a green corner bleed at the bottom right. The app's background color isn't extending edge-to-edge — likely missing `.ignoresSafeArea()` or the window/scene background isn't set to `ccBackground`.
+- **Screenshot:** Boss-provided — clearly shows white strip at top and green corner at bottom-right on dark import screen.
+- **Expected:** `ccBackground` (#0A0A0F) should fill the entire screen edge-to-edge including behind the status bar and home indicator areas. No color bleed from other views.
+- **Fix:** Ensure the root view or NavigationStack has `.background(Color.ccBackground.ignoresSafeArea())`. Check if any underlying view (like a green accent) is bleeding through at the bottom corner.
+
 #### BUG-012: Animation value mismatched with layout trigger ⭐ NEW
 - **Priority:** P3
 - **Status:** open
