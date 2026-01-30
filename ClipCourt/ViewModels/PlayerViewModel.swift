@@ -211,8 +211,17 @@ final class PlayerViewModel {
     }
 
     /// Restart playback from the beginning.
+    /// Defaults to not keeping and playing.
     func restart() {
         isAtEnd = false
+
+        // Stop keeping if active
+        if isIncluding {
+            let updated = segmentManager.stopIncluding(at: currentTime)
+            segments = updated
+            isIncluding = false
+        }
+
         seek(to: 0)
         if !isPlaying {
             togglePlayPause()
