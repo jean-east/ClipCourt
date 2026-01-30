@@ -182,8 +182,20 @@ struct SegmentTimelineView: View {
 
             // Segment blocks
             ForEach(viewModel.segments) { segment in
+                // While keeping, cap the visual end of the active segment to the playhead
+                // so green fills progressively instead of pre-populating ahead
+                let visualEndTime: Double = {
+                    if viewModel.isIncluding
+                        && segment.isIncluded
+                        && segment.startTime <= viewModel.currentTime
+                        && segment.endTime > viewModel.currentTime {
+                        return viewModel.currentTime
+                    }
+                    return segment.endTime
+                }()
+                let visualDuration = max(visualEndTime - segment.startTime, 0)
                 let startFraction = segment.startTime / totalDuration
-                let durationFraction = segment.duration / totalDuration
+                let durationFraction = visualDuration / totalDuration
                 let segmentWidth = max(durationFraction * contentWidth, 2)
                 let segmentX = startFraction * contentWidth
 
