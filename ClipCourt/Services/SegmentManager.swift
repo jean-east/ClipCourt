@@ -166,10 +166,23 @@ final class SegmentManager: SegmentManaging {
                     segments = baseline
                 }
             }
-            // BUG-016: Range replacement — overwrite all segments in [start, stop]
-            // with a single included segment. Trim partially overlapping segments,
-            // remove fully contained ones.
-            replaceRange(from: startTime, to: time)
+
+            if time >= startTime {
+                // Normal case: stopped after start → range replacement for [start, stop]
+                replaceRange(from: startTime, to: time)
+            } else {
+                // User sought backward past the recording start point.
+                // No forward recording happened in this range, so don't mark [time, start]
+                // as included. Instead, split at the stop point: everything from the stop
+                // point onward in the current segment becomes excluded ("not recorded").
+                if let index = segmentIndex(containing: time) {
+                    let seg = segments[index]
+                    if seg.isIncluded {
+                        splitAndSetIncluded(at: time, index: index, setIncluded: false)
+                    }
+                }
+            }
+
             recordingStartTime = nil
             preRecordingSegments = nil
             recordingVideoDuration = nil
