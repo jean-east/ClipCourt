@@ -528,14 +528,14 @@ final class ExportService: VideoExporting {
 
         if isCancelled || Task.isCancelled {
             reader.cancelReading()
-            await writer.cancelWriting()
+            writer.cancelWriting()
             cleanupTempFile(at: outputURL)
             throw ExportError.cancelled
         }
 
         // Check reader status
         if reader.status == .failed {
-            await writer.cancelWriting()
+            writer.cancelWriting()
             cleanupTempFile(at: outputURL)
             let reason = reader.error?.localizedDescription ?? "Unknown reader error"
             throw ExportError.readerFailed(reason)

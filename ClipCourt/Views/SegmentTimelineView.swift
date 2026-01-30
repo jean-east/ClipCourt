@@ -1,7 +1,7 @@
 // SegmentTimelineView.swift
 // ClipCourt
 //
-// Mini-timeline showing included (full color) vs excluded (dimmed) regions.
+// Mini-timeline showing included (Rally Green) vs excluded (dimmed) regions.
 // Tappable to jump to any segment. "I bent my Wookiee!" — but I never
 // bend my timeline. It's pixel-perfect.
 
@@ -21,40 +21,76 @@ struct SegmentTimelineView: View {
             let totalDuration = max(viewModel.duration, 0.01)
 
             ZStack(alignment: .leading) {
-                // Background (full timeline)
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(Color.white.opacity(0.1))
+                // Background bar (Design.md: ccSurface, 8pt corner radius)
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.ccSurface)
 
                 // Segment blocks
                 ForEach(viewModel.segments) { segment in
                     let startFraction = segment.startTime / totalDuration
                     let durationFraction = segment.duration / totalDuration
-                    let segmentWidth = max(durationFraction * totalWidth, 2) // minimum 2pt visible
+                    let segmentWidth = max(durationFraction * totalWidth, 2) // minimum 2pt (Design.md)
 
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(segment.isIncluded
-                              ? Color.red.opacity(0.8)
-                              : Color.white.opacity(0.15))
-                        .frame(width: segmentWidth)
+                    Rectangle()
+                        .fill(segmentFillColor(segment))
+                        .frame(width: segmentWidth, height: geometry.size.height)
                         .offset(x: startFraction * totalWidth)
                         .onTapGesture {
-                            // Jump to segment start
+                            HapticManager.segmentTap()
                             viewModel.seek(to: segment.startTime)
                         }
                         .onLongPressGesture {
-                            // Toggle segment on long press
                             viewModel.toggleSegment(segment)
                         }
                 }
 
-                // Playhead indicator
+                // Playhead (Design.md: 2pt wide, Snow, full height + triangle cap)
                 let playheadX = (viewModel.currentTime / totalDuration) * totalWidth
-                Rectangle()
-                    .fill(Color.white)
-                    .frame(width: 2, height: geometry.size.height)
-                    .offset(x: playheadX)
-                    .animation(.linear(duration: 0.05), value: viewModel.currentTime)
+                VStack(spacing: 0) {
+                    // Inverted triangle cap
+                    Triangle()
+                        .fill(Color.ccTextPrimary)
+                        .frame(width: 8, height: 6)
+
+                    // Vertical line
+                    Rectangle()
+                        .fill(Color.ccTextPrimary)
+                        .frame(width: 2)
+                }
+                .offset(x: playheadX - 1) // center the 2pt line
+                .animation(.linear(duration: 0.05), value: viewModel.currentTime)
             }
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+    }
+
+    // MARK: - Segment Color
+
+    private func segmentFillColor(_ segment: Segment) -> Color {
+        let isCurrentSegment = segment.contains(time: viewModel.currentTime)
+
+        if segment.isIncluded {
+            // Design.md: Rally Green full opacity, Rally Glow for active
+            return isCurrentSegment ? Color.ccIncludeGlow : Color.ccInclude
+        } else {
+            // Design.md: Excluded = transparent (shows bar background)
+            // Active excluded segment gets a faint outline effect
+            return isCurrentSegment
+                ? Color.ccTextTertiary.opacity(0.3)
+                : Color.clear
+        }
+    }
+}
+
+// MARK: - Triangle Shape (for playhead cap)
+
+struct Triangle: Shape {
+    func path(in rect: CGRect) -> Path {
+        Path { path in
+            path.move(to: CGPoint(x: rect.midX, y: rect.maxY))
+            path.addLine(to: CGPoint(x: rect.minX, y: rect.minY))
+            path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
+            path.closeSubpath()
         }
     }
 }
@@ -63,8 +99,8 @@ struct SegmentTimelineView: View {
 
 #Preview {
     SegmentTimelineView()
-        .frame(height: 60)
+        .frame(height: 48)
         .padding()
-        .background(Color.black)
+        .background(Color.ccBackground)
         .environment(PlayerViewModel())
 }

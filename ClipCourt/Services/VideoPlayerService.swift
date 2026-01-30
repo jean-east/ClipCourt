@@ -151,10 +151,10 @@ final class VideoPlayerService: VideoPlaybackControlling {
         // Store the asset for export access
         self.asset = avAsset
 
-        // Create player item and configure the player
-        let playerItem = AVPlayerItem(asset: avAsset)
-
+        // Create player item and configure the player on the main actor.
+        // AVPlayerItem init is implicitly @MainActor in Swift 6.
         await MainActor.run {
+            let playerItem = AVPlayerItem(asset: avAsset)
             player.replaceCurrentItem(with: playerItem)
             // Pause at end so we can detect it and let the user replay
             player.actionAtItemEnd = .pause
