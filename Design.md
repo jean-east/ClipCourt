@@ -323,17 +323,52 @@ Full timeline bar:
 |---------|----------|
 | **Tap** | Jump playback to tapped position; playhead animates to new position (0.15s ease-out) |
 | **Drag** | Scrub through video; playhead follows finger; video frames update in real-time (throttled to 10fps during drag for performance) |
+| **Pinch** | Zoom in/out horizontally (see Zoom Behavior below) |
 | **Long press (0.5s)** | Future: could enable segment split/adjust — **v1: no action** |
 
-### Density for Long Videos
+### Zoom Behavior (Pinch-to-Zoom)
 
-For a 40-minute video on an iPhone 15 (portrait width 361pt usable):
-- Total usable width: ~329pt (361 - 32pt padding)
-- 1 second ≈ 0.137pt
-- 10-second segment ≈ 1.37pt → below minimum, rendered at 2pt
-- 60-second segment ≈ 8.2pt → comfortably visible and tappable
+The timeline supports **horizontal pinch-to-zoom** for precision navigation on long videos. This is critical — a 40-minute video crammed into 329pt is too dense to operate segment boundaries accurately.
 
-This works. Short segments cluster together visually but remain distinguishable. The timeline serves as a **map**, not a precision tool — the scrub bar handles precise seeking.
+| Property | Value |
+|----------|-------|
+| **Default zoom** | 1.0x — full video fits screen width (overview mode) |
+| **Minimum zoom** | 1.0x — can't zoom out past full overview |
+| **Maximum zoom** | 10.0x — at max zoom, a 40-min video shows ~4 minutes of timeline on screen |
+| **Zoom gesture** | Standard `MagnificationGesture` (pinch) applied to timeline bar |
+| **Zoom animation** | `.interactiveSpring(response: 0.25, dampingFraction: 0.85)` — snappy, no bounce |
+| **Zoom anchor** | Pinch center — zooms around the midpoint of the two fingers |
+
+**When zoomed in (> 1.0x):**
+- Timeline becomes **horizontally scrollable** (clipped to container, content extends off-screen)
+- **Auto-follow playhead**: During playback, the timeline scrolls to keep the playhead centered (or at 40% from leading edge to show upcoming content)
+- Auto-follow **pauses** when the user is actively dragging/scrolling the timeline, resumes 2 seconds after touch ends
+- A subtle **scroll indicator** appears: thin 2pt line below the timeline showing the visible portion's position within the full duration (like a mini-map of the mini-map)
+- Segments become larger and more tappable — easier to adjust individual clip boundaries
+
+**Zoom level indicator:**
+- While pinching, a small badge appears above the timeline: "2.5x" in ccTextSecondary, `.caption2` Bold
+- Fades out 1 second after pinch ends
+- Helps users understand their current zoom level
+
+**Snap-to-overview:**
+- If the user pinches down to below 1.2x, the timeline **snaps** back to 1.0x (overview) with a spring animation
+- This provides a satisfying "snap home" feel — like pulling a rubber band
+
+**Visual change when zoomed:**
+- Segments show **border separators**: 0.5pt vertical lines in ccSurface between adjacent segments (invisible at 1x due to density, visible when zoomed)
+- Minimum segment width still applies (2pt) but at higher zoom, short segments naturally become wider and visible
+
+### Density at Various Zoom Levels (40-min video, iPhone 15 portrait)
+
+| Zoom | Visible Duration | 1 Second | 10s Segment | 60s Segment |
+|------|-----------------|----------|-------------|-------------|
+| 1.0x (default) | 40:00 | 0.14pt | 1.4pt | 8.2pt |
+| 2.0x | 20:00 | 0.27pt | 2.7pt | 16.4pt |
+| 5.0x | 8:00 | 0.69pt | 6.9pt | 41.1pt |
+| 10.0x | 4:00 | 1.37pt | 13.7pt | 82.2pt |
+
+At 5x zoom, even 10-second segments are comfortably tappable. At 10x, you have surgical precision.
 
 ### Active Segment Highlight
 

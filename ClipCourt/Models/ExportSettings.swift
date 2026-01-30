@@ -2,6 +2,8 @@
 // ClipCourt
 //
 // Configuration for video export — lossless passthrough or lossy re-encode.
+// "My cat's breath smells like cat food." — and my exports smell like
+// PRISTINE MPEG-4 containers.
 
 import Foundation
 
@@ -28,6 +30,13 @@ struct ExportSettings: Codable, Equatable {
             case .lossy:    "Frame-accurate cuts, smaller size"
             }
         }
+
+        var iconName: String {
+            switch self {
+            case .lossless: "star.fill"
+            case .lossy:    "bolt.fill"
+            }
+        }
     }
 
     // MARK: - Properties
@@ -40,6 +49,16 @@ struct ExportSettings: Codable, Equatable {
     static let `default` = ExportSettings(
         mode: .lossless,
         outputQuality: 0.8
+    )
+
+    static let highQualityLossy = ExportSettings(
+        mode: .lossy,
+        outputQuality: 0.9
+    )
+
+    static let smallFileLossy = ExportSettings(
+        mode: .lossy,
+        outputQuality: 0.5
     )
 
     // MARK: - Initializer

@@ -40,6 +40,12 @@ Playback *is* the editing process. You watch the video, toggle a "keep" switch d
 
 ### 4. Segment Timeline
 - Mini-timeline showing included (full color) vs excluded (dimmed) regions
+- **Pinch-to-zoom** — horizontally expandable and shrinkable
+  - Default zoom: full video fits the screen width (overview)
+  - Pinch out to zoom in for precision navigation on long videos
+  - Pinch in to zoom back out to overview
+  - When zoomed in, the timeline scrolls horizontally and auto-follows the playhead during playback
+  - Playhead stays centered when possible while zoomed in
 - Tappable — jump to any segment to review or re-adjust toggle regions
 - Designed for one-pass use but supports going back
 
