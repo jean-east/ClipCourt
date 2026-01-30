@@ -27,6 +27,7 @@
 		F642A03D470276B869275A01 /* HapticManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76885899DCD6E4AE352AD452 /* HapticManager.swift */; };
 		F71EFEE84391C682E4EBCEC8 /* ExportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 177A4AD6326485D74653A5AC /* ExportView.swift */; };
 		D3E4F5A6B7C8091D2E3F4A5B /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4F5A6B7C809102D3E4F5A6C /* SettingsView.swift */; };
+		A1B2C3D4E5F6071829304152 /* SlideToKeepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F60718293041A263 /* SlideToKeepView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -38,6 +39,7 @@
 		350A10636FDA9252B14FEC1F /* SegmentManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SegmentManager.swift; sourceTree = "<group>"; };
 		50ADD3FE0ECDD3A789915527 /* Project.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Project.swift; sourceTree = "<group>"; };
 		5E433303B659C64B8F1A97A6 /* PlayerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerViewModel.swift; sourceTree = "<group>"; };
+		B2C3D4E5F60718293041A263 /* SlideToKeepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlideToKeepView.swift; sourceTree = "<group>"; };
 		613AAE658CE6039DBBF3CCFE /* Segment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Segment.swift; sourceTree = "<group>"; };
 		705A80486ED5AECC8DFF2F55 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		76885899DCD6E4AE352AD452 /* HapticManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticManager.swift; sourceTree = "<group>"; };
@@ -135,6 +137,7 @@
 				11FCE306B888208BF281C836 /* PlayerView.swift */,
 				08EB2BC4338E34B7DB6CDF31 /* SegmentTimelineView.swift */,
 				E4F5A6B7C809102D3E4F5A6C /* SettingsView.swift */,
+				B2C3D4E5F60718293041A263 /* SlideToKeepView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -226,6 +229,7 @@
 				622FDF252BB2E8D52A256D01 /* SegmentManager.swift in Sources */,
 				C633238335AFC336FEAC97CC /* SegmentTimelineView.swift in Sources */,
 				D3E4F5A6B7C8091D2E3F4A5B /* SettingsView.swift in Sources */,
+				A1B2C3D4E5F6071829304152 /* SlideToKeepView.swift in Sources */,
 				15D2361C43AFD42561505867 /* TimeFormatter.swift in Sources */,
 				69C7622D06EE92BC710EDA08 /* VideoPlayerService.swift in Sources */,
 			);

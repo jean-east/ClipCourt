@@ -538,45 +538,22 @@ struct PlayerView: View {
         }
     }
 
-    /// Slider variant — a custom full-width on/off toggle.
-    /// ON: green background, "KEEPING" in primary text.
-    /// OFF: dark background, "NOT KEEPING" in secondary text.
+    /// Slide-to-toggle variant — old iPhone "slide to unlock" style.
+    /// OFF: thumb LEFT, dark track, shimmer text "SLIDE TO KEEP →"
+    /// ON: thumb RIGHT, green track, text "KEEPING"
     private func keepingSlider(height: CGFloat) -> some View {
-        Button {
-            if viewModel.isIncluding {
-                HapticManager.toggleOff()
-            } else {
-                HapticManager.toggleOn()
+        SlideToKeepView(
+            isOn: viewModel.isIncluding,
+            height: height,
+            onToggle: {
+                if viewModel.isIncluding {
+                    HapticManager.toggleOff()
+                } else {
+                    HapticManager.toggleOn()
+                }
+                viewModel.toggleInclude()
             }
-            viewModel.toggleInclude()
-        } label: {
-            Text(viewModel.isIncluding ? "KEEPING" : "NOT KEEPING")
-                .font(.headline)
-                .fontWeight(viewModel.isIncluding ? .bold : .medium)
-                .tracking(1.5)
-                .foregroundStyle(viewModel.isIncluding ? Color.ccTextPrimary : Color.ccTextSecondary)
-                .frame(maxWidth: .infinity)
-                .frame(height: height)
-                .background(
-                    viewModel.isIncluding
-                        ? Color.ccInclude
-                        : Color.ccSurface
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 20))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .strokeBorder(
-                            viewModel.isIncluding ? Color.ccInclude : Color.ccExclude,
-                            lineWidth: viewModel.isIncluding ? 2.5 : 2
-                        )
-                )
-                .shadow(
-                    color: viewModel.isIncluding ? Color.ccInclude.opacity(0.4) : .clear,
-                    radius: 8
-                )
-        }
-        .buttonStyle(.plain)
-        .animation(.spring(response: 0.5, dampingFraction: 0.7), value: viewModel.isIncluding)
+        )
     }
 }
 
