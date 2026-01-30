@@ -43,6 +43,16 @@ final class SegmentManager: SegmentManaging {
     /// range with a single included segment instead of acting on a single point.
     private var recordingStartTime: Double?
 
+    /// Snapshot of segments BEFORE `beginIncluding()` modified them.
+    /// Used by `stopIncluding()` to restore the pre-recording baseline before
+    /// applying range replacement. This prevents the "open-ended included segment"
+    /// created by beginIncluding from contaminating the stop result.
+    private var preRecordingSegments: [Segment]?
+
+    /// Video duration stored from `beginIncluding()` so `stopIncluding()` can
+    /// initialize the timeline if preRecordingSegments was empty.
+    private var recordingVideoDuration: Double?
+
     // MARK: - Computed Properties
 
     /// Total duration of all included segments, in seconds.
@@ -86,10 +96,11 @@ final class SegmentManager: SegmentManaging {
         guard videoDuration > 0 else { return segments }
         let t = clamp(time, min: 0, max: videoDuration)
 
-        // BUG-016: Always store recording start time for range replacement on stop.
-        // This enables tape-recorder semantics — re-recording over existing segments
-        // overwrites them instead of leaving fragments.
+        // BUG-016: Snapshot segments BEFORE any modification so stopIncluding()
+        // can restore the pre-recording baseline before applying range replacement.
+        preRecordingSegments = segments.map { $0 }
         recordingStartTime = t
+        recordingVideoDuration = videoDuration
 
         if segments.isEmpty {
             // First interaction: initialize the full timeline
@@ -145,11 +156,23 @@ final class SegmentManager: SegmentManaging {
         guard !segments.isEmpty else { return segments }
 
         if let startTime = recordingStartTime {
+            // Restore the pre-recording segment baseline so the "open-ended included
+            // segment" created by beginIncluding() doesn't contaminate the result.
+            if let baseline = preRecordingSegments {
+                if baseline.isEmpty, let dur = recordingVideoDuration, dur > 0 {
+                    // First-ever recording: create a full-length excluded baseline
+                    segments = [Segment(startTime: 0, endTime: dur, isIncluded: false)]
+                } else {
+                    segments = baseline
+                }
+            }
             // BUG-016: Range replacement — overwrite all segments in [start, stop]
             // with a single included segment. Trim partially overlapping segments,
             // remove fully contained ones.
             replaceRange(from: startTime, to: time)
             recordingStartTime = nil
+            preRecordingSegments = nil
+            recordingVideoDuration = nil
         } else {
             // Fallback: point-in-time split (e.g., restored session without recordingStartTime)
             if let index = segmentIndex(containing: time) {
@@ -240,6 +263,8 @@ final class SegmentManager: SegmentManaging {
     func replaceSegments(_ newSegments: [Segment]) {
         segments = newSegments.sorted()
         recordingStartTime = nil
+        preRecordingSegments = nil
+        recordingVideoDuration = nil
     }
 
     /// Cap the last segment's endTime to the actual video duration
@@ -269,6 +294,8 @@ final class SegmentManager: SegmentManaging {
     func reset() {
         segments = []
         recordingStartTime = nil
+        preRecordingSegments = nil
+        recordingVideoDuration = nil
     }
 
     // MARK: - Private: Range Replacement (BUG-016)
