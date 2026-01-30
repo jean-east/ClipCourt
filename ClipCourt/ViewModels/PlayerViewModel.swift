@@ -92,6 +92,33 @@ final class PlayerViewModel {
                 self?.currentTime = time
             }
             .store(in: &cancellables)
+
+        // Handle end-of-video: reset isPlaying and close any open segment (BUG-001)
+        playerService.didPlayToEndPublisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in
+                self?.handleVideoDidPlayToEnd()
+            }
+            .store(in: &cancellables)
+    }
+
+    /// Called when AVPlayer reaches the end of the video.
+    /// Resets playback state and finalizes any open segment.
+    private func handleVideoDidPlayToEnd() {
+        isPlaying = false
+
+        // If user was including (toggle ON), close the open segment at video end
+        if isIncluding {
+            let updated = segmentManager.stopIncluding(at: duration)
+            segments = updated
+            isIncluding = false
+        }
+
+        // Finalize segments to cap at video duration and remove any zero-duration remnants
+        let finalized = segmentManager.finalizeSegments(videoDuration: duration)
+        segments = finalized
+
+        scheduleSave()
     }
 
     // MARK: - Session Lifecycle
