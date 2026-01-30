@@ -444,7 +444,7 @@ struct PlayerView: View {
             Button {
                 viewModel.closeProject()
             } label: {
-                Image(systemName: "xmark.circle")
+                Image(systemName: "photo.on.rectangle.angled")
                     .font(.title3)
                     .foregroundStyle(Color.ccTextSecondary)
             }
@@ -469,7 +469,7 @@ struct PlayerView: View {
             Button {
                 viewModel.closeProject()
             } label: {
-                Image(systemName: "xmark.circle")
+                Image(systemName: "photo.on.rectangle.angled")
                     .font(.caption)
                     .foregroundStyle(Color.ccTextSecondary)
             }
