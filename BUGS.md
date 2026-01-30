@@ -14,7 +14,7 @@
 
 #### BUG-001: No end-of-video handling — isPlaying stuck, segment not finalized
 - **Priority:** P1
-- **Status:** open → in-progress
+- **Status:** ✅ fixed (bcf84d0)
 - **Filed:** 2025-07-13 (PM code review)
 - **File(s):** `ViewModels/PlayerViewModel.swift`
 - **Description:** PlayerViewModel never subscribes to `VideoPlayerService.didPlayToEndPublisher`. When playback reaches the end of the video:
@@ -26,7 +26,7 @@
 
 #### BUG-002: No landscape-adaptive layout
 - **Priority:** P1
-- **Status:** open → in-progress
+- **Status:** ✅ fixed (cf12848)
 - **Filed:** 2025-07-13 (PM code review + QA screenshot)
 - **File(s):** `Views/PlayerView.swift`
 - **Description:** PlayerView uses a single `VStack` layout that doesn't adapt to landscape orientation. The Design.md specifies a completely different landscape layout:
@@ -39,7 +39,7 @@
 
 #### BUG-003: Pinch-to-zoom not implemented on segment timeline
 - **Priority:** P1
-- **Status:** open → in-progress
+- **Status:** ✅ fixed (b342358)
 - **Filed:** 2025-07-13 (PM code review, also noted in HANDOFF.md)
 - **File(s):** `Views/SegmentTimelineView.swift`
 - **Description:** SegmentTimelineView has no `MagnificationGesture`, no zoom state, no horizontal scrolling. For a 40-minute video on iPhone, each second is ~0.14pt wide at 1x — segments are effectively untappable. The Design.md calls this feature "critical" and specifies:
@@ -116,6 +116,9 @@
 | ID | Priority | Title | Fixed By | Commit |
 |----|----------|-------|----------|--------|
 | — | P1 | Share Video button was a stub | Engineer | `ceb4a35` |
+| BUG-001 | P1 | No end-of-video handling | PM Ralph | `bcf84d0` |
+| BUG-002 | P1 | No landscape-adaptive layout | PM Ralph | `cf12848` |
+| BUG-003 | P1 | Pinch-to-zoom timeline | PM Ralph | `b342358` |
 
 ---
 
