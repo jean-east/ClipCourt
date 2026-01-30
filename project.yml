@@ -1,0 +1,58 @@
+name: ClipCourt
+options:
+  bundleIdPrefix: com.clipcourt
+  deploymentTarget:
+    iOS: "17.0"
+  xcodeVersion: "16.0"
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    GENERATE_INFOPLIST_FILE: false
+
+targets:
+  ClipCourt:
+    type: application
+    platform: iOS
+    sources:
+      - path: ClipCourt
+        excludes:
+          - "**/*.md"
+    settings:
+      base:
+        INFOPLIST_FILE: ClipCourt/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.clipcourt.app
+        PRODUCT_NAME: ClipCourt
+        SWIFT_VERSION: "5.9"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        DEVELOPMENT_TEAM: ""
+    dependencies:
+      - framework: AVFoundation.framework
+        implicit: true
+      - framework: Photos.framework
+        implicit: true
+      - framework: PhotosUI.framework
+        implicit: true
+      - framework: SwiftUI.framework
+        implicit: true
+      - framework: UIKit.framework
+        implicit: true
+      - framework: AVKit.framework
+        implicit: true
+      - framework: CoreMedia.framework
+        implicit: true
+      - framework: Combine.framework
+        implicit: true
+
+schemes:
+  ClipCourt:
+    build:
+      targets:
+        ClipCourt: all
+    run:
+      config: Debug
