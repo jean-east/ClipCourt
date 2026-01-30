@@ -274,8 +274,9 @@ struct SegmentTimelineView: View {
         let isCurrentSegment = segment.contains(time: viewModel.currentTime)
 
         if segment.isIncluded {
-            // Design.md: Rally Green full opacity, Rally Glow for active
-            return isCurrentSegment ? Color.ccIncludeGlow : Color.ccInclude
+            // Design.md: Rally Green full opacity for all included segments
+            // ccIncludeGlow is only for glow/border effects, not segment fills
+            return Color.ccInclude
         } else {
             // Design.md: Excluded = transparent (shows bar background)
             // Active excluded segment gets a faint outline effect
