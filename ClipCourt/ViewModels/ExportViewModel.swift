@@ -32,6 +32,9 @@ final class ExportViewModel {
     var progress: Double = 0
     var showExportSheet: Bool = false
 
+    /// URL of the last successfully exported video (kept for sharing).
+    var exportedFileURL: URL?
+
     // MARK: - Services
 
     private let exportService: ExportService
@@ -94,10 +97,16 @@ final class ExportViewModel {
                     )
                 }
 
+                // Keep a copy for sharing before saving to Photos
+                let shareURL = FileManager.default.temporaryDirectory
+                    .appendingPathComponent("ClipCourt_Share_\(Int(Date().timeIntervalSince1970)).mp4")
+                try? FileManager.default.copyItem(at: outputURL, to: shareURL)
+
                 // Save to photo library
                 try await exportService.saveToPhotoLibrary(url: outputURL)
 
                 await MainActor.run {
+                    self.exportedFileURL = shareURL
                     self.state = .completed
                     self.progress = 1.0
                 }
@@ -132,6 +141,11 @@ final class ExportViewModel {
 
     /// Reset state after viewing completion/error.
     func reset() {
+        // Clean up the share copy
+        if let url = exportedFileURL {
+            try? FileManager.default.removeItem(at: url)
+        }
+        exportedFileURL = nil
         state = .idle
         progress = 0
         settings = .default

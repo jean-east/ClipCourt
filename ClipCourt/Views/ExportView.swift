@@ -216,10 +216,12 @@ struct ExportView: View {
             }
 
             // Share button (Design.md: text-only, Signal Blue)
-            Button("Share Video") {
-                // Future: UIActivityViewController via UIKit bridge
+            if let shareURL = exportViewModel.exportedFileURL {
+                ShareLink(item: shareURL) {
+                    Text("Share Video")
+                        .foregroundStyle(Color.ccExport)
+                }
             }
-            .foregroundStyle(Color.ccExport)
         }
     }
 
