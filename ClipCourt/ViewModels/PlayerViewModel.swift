@@ -43,6 +43,7 @@ final class PlayerViewModel {
     // MARK: - Published State
 
     var hasActiveProject: Bool = false
+    var isSelectingNewVideo: Bool = false
     var isPlaying: Bool = false
     var isAtEnd: Bool = false
     var isIncluding: Bool = false
@@ -166,6 +167,7 @@ final class PlayerViewModel {
 
             project = projectToLoad
             hasActiveProject = true
+            isSelectingNewVideo = false
             isLoading = false
 
             // Check if we were mid-inclusion
@@ -183,6 +185,7 @@ final class PlayerViewModel {
         playerService.pause()
         isPlaying = false
         hasActiveProject = false
+        isSelectingNewVideo = false
         project = nil
         segments = []
         isIncluding = false
@@ -190,6 +193,19 @@ final class PlayerViewModel {
         duration = 0
 
         try? persistenceService.delete()
+    }
+
+    /// Navigate to import screen without closing the current project.
+    /// User can come back via the back button if they don't pick a new video.
+    func navigateToImport() {
+        playerService.pause()
+        isPlaying = false
+        isSelectingNewVideo = true
+    }
+
+    /// Cancel new video selection and return to the active project.
+    func cancelSelectNewVideo() {
+        isSelectingNewVideo = false
     }
 
     // MARK: - Playback Controls

@@ -21,8 +21,35 @@ struct ImportView: View {
 
     // MARK: - Body
 
+    /// True when there's an active project and user navigated here to pick a new video.
+    private var canGoBack: Bool {
+        viewModel.hasActiveProject && viewModel.isSelectingNewVideo
+    }
+
     var body: some View {
         VStack(spacing: 0) {
+            // Back button row — only visible when navigating from an active project
+            if canGoBack {
+                HStack {
+                    Button {
+                        viewModel.cancelSelectNewVideo()
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "chevron.left")
+                                .font(.body.weight(.semibold))
+                            Text("Back to editing")
+                                .font(.body)
+                        }
+                        .foregroundStyle(Color.ccExport)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                    }
+
+                    Spacer()
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+
             Spacer()
 
             // Empty state content (Design.md specs)
@@ -34,12 +61,14 @@ struct ImportView: View {
                     .foregroundStyle(Color.ccTextSecondary)
 
                 // Headline (Design.md: .title2 Bold, ccTextPrimary)
-                Text("Tap to open a video")
+                Text(canGoBack ? "Choose a new video" : "Tap to open a video")
                     .font(.title2.bold())
                     .foregroundStyle(Color.ccTextPrimary)
 
                 // Body (Design.md: .body Regular, ccTextSecondary)
-                Text("Pick a game film from your camera roll and start clipping")
+                Text(canGoBack
+                     ? "Pick a new game film, or go back to continue editing"
+                     : "Pick a game film from your camera roll and start clipping")
                     .font(.body)
                     .foregroundStyle(Color.ccTextSecondary)
                     .multilineTextAlignment(.center)

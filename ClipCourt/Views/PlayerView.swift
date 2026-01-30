@@ -447,7 +447,7 @@ struct PlayerView: View {
     private var exportBar: some View {
         HStack {
             Button {
-                viewModel.closeProject()
+                viewModel.navigateToImport()
             } label: {
                 Image(systemName: "photo.on.rectangle.angled")
                     .font(.title3)
@@ -474,7 +474,7 @@ struct PlayerView: View {
     private var landscapeExportButton: some View {
         HStack {
             Button {
-                viewModel.closeProject()
+                viewModel.navigateToImport()
             } label: {
                 Image(systemName: "photo.on.rectangle.angled")
                     .font(.caption)
@@ -538,52 +538,44 @@ struct PlayerView: View {
         }
     }
 
-    /// Slider variant — a Toggle switch styled as a switch.
+    /// Slider variant — a custom full-width on/off toggle.
+    /// ON: green background, "KEEPING" in primary text.
+    /// OFF: dark background, "NOT KEEPING" in secondary text.
     private func keepingSlider(height: CGFloat) -> some View {
-        Toggle(isOn: Binding(
-            get: { viewModel.isIncluding },
-            set: { _ in
-                if viewModel.isIncluding {
-                    HapticManager.toggleOff()
-                } else {
-                    HapticManager.toggleOn()
-                }
-                viewModel.toggleInclude()
+        Button {
+            if viewModel.isIncluding {
+                HapticManager.toggleOff()
+            } else {
+                HapticManager.toggleOn()
             }
-        )) {
-            HStack(spacing: 10) {
-                Image(systemName: viewModel.isIncluding ? "checkmark.circle.fill" : "circle")
-                    .font(.title3)
-                    .symbolEffect(.pulse, isActive: viewModel.isIncluding)
-
-                Text(viewModel.isIncluding ? "KEEPING" : "KEEP")
-                    .font(.headline)
-                    .fontWeight(viewModel.isIncluding ? .bold : .medium)
-            }
-            .foregroundStyle(viewModel.isIncluding ? Color.ccInclude : Color.ccTextSecondary)
-        }
-        .toggleStyle(.switch)
-        .tint(Color.ccInclude)
-        .padding(.horizontal, 16)
-        .frame(maxWidth: .infinity)
-        .frame(height: height)
-        .background(
-            viewModel.isIncluding
-                ? Color.ccInclude.opacity(0.15)
-                : Color.ccSurface
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-        .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .strokeBorder(
-                    viewModel.isIncluding ? Color.ccInclude : Color.ccExclude,
-                    lineWidth: viewModel.isIncluding ? 2.5 : 2
+            viewModel.toggleInclude()
+        } label: {
+            Text(viewModel.isIncluding ? "KEEPING" : "NOT KEEPING")
+                .font(.headline)
+                .fontWeight(viewModel.isIncluding ? .bold : .medium)
+                .tracking(1.5)
+                .foregroundStyle(viewModel.isIncluding ? Color.ccTextPrimary : Color.ccTextSecondary)
+                .frame(maxWidth: .infinity)
+                .frame(height: height)
+                .background(
+                    viewModel.isIncluding
+                        ? Color.ccInclude
+                        : Color.ccSurface
                 )
-        )
-        .shadow(
-            color: viewModel.isIncluding ? Color.ccInclude.opacity(0.4) : .clear,
-            radius: 8
-        )
+                .clipShape(RoundedRectangle(cornerRadius: 20))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20)
+                        .strokeBorder(
+                            viewModel.isIncluding ? Color.ccInclude : Color.ccExclude,
+                            lineWidth: viewModel.isIncluding ? 2.5 : 2
+                        )
+                )
+                .shadow(
+                    color: viewModel.isIncluding ? Color.ccInclude.opacity(0.4) : .clear,
+                    radius: 8
+                )
+        }
+        .buttonStyle(.plain)
         .animation(.spring(response: 0.5, dampingFraction: 0.7), value: viewModel.isIncluding)
     }
 }

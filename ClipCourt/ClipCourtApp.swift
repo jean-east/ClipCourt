@@ -57,7 +57,7 @@ struct ContentView: View {
 
     var body: some View {
         Group {
-            if playerViewModel.hasActiveProject {
+            if playerViewModel.hasActiveProject && !playerViewModel.isSelectingNewVideo {
                 PlayerView()
             } else {
                 ImportView()
@@ -66,6 +66,7 @@ struct ContentView: View {
         .background(Color.ccBackground.ignoresSafeArea())
         .preferredColorScheme(.dark)
         .animation(.easeInOut(duration: 0.3), value: playerViewModel.hasActiveProject)
+        .animation(.easeInOut(duration: 0.3), value: playerViewModel.isSelectingNewVideo)
         .task {
             await playerViewModel.attemptResumeSession()
         }
