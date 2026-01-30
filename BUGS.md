@@ -12,14 +12,14 @@
 
 ## 🏁 TestFlight Readiness Summary
 
-**🚫 1 P1 blocker — NOT ready for TestFlight.**
+**✅ 0 P1 blockers — ready for TestFlight (pending P2/P3 polish).**
 
-BUG-016 (P1) is a core recording-model bug: re-recording over existing clips doesn't overwrite them. The fundamental tape-recorder interaction is broken — old segment fragments survive when the user records over them. This is a UX-breaking / data-integrity issue that will confuse every tester. Must fix before TestFlight.
+BUG-016 (P1) has been fixed (`af9afc5`). Re-recording over existing clips now correctly overwrites them using range-replacement logic in SegmentManager.
 
-**Remaining: 1 blocker + 5 P2 (polish) + 3 P3 (cosmetic) = 9 open bugs.**
+**Remaining: 0 blockers + 5 P2 (polish) + 3 P3 (cosmetic) = 8 open bugs.**
 
 ### Recommended Fix Order (pre-TestFlight)
-1. **BUG-016** (P1, Boss-filed) — **BLOCKER.** Re-recording doesn't overwrite existing segments. Core recording model needs sweep-based replacement.
+1. ~~**BUG-016** (P1, Boss-filed) — **BLOCKER.** Re-recording doesn't overwrite existing segments. Core recording model needs sweep-based replacement.~~ ✅ Fixed `af9afc5`
 2. **BUG-013** (P2, Boss-filed) — Close button confirmation dialog. Safety-critical UX.
 3. **BUG-010** (P3, quick win) — Two green shades. Boss-filed, easy 5-min fix.
 4. **BUG-011** (P2, new) — Landscape missing "included duration" text. Easy add.
@@ -69,9 +69,9 @@ BUG-016 (P1) is a core recording-model bug: re-recording over existing clips doe
   - **Option C (hybrid):** Add a "recording origin" marker to SegmentManager. During cleanup, never merge a segment that was just created by `beginIncluding` with pre-existing segments. Clear the marker on `stopIncluding`.
 - **PM Note:** This is the highest-priority bug. It's a silent data-loss issue — no error, no warning, the user's work simply vanishes. Blocks TestFlight.
 
-#### BUG-016: Re-recording over existing segments doesn't overwrite them (tape-recorder model broken) 🔥 BLOCKER
+#### BUG-016: Re-recording over existing segments doesn't overwrite them (tape-recorder model broken) ✅ FIXED
 - **Priority:** P1
-- **Status:** open
+- **Status:** fixed
 - **Filed:** 2025-07-15 (Boss)
 - **File(s):** `Services/SegmentManager.swift` → `beginIncluding()`, `stopIncluding()`; `ViewModels/PlayerViewModel.swift` → `toggleInclude()`
 - **Description:** When a user seeks back into an existing included segment and starts recording again, the new recording session does NOT overwrite the segments it passes through. Old segment fragments survive, leaving the timeline in an incorrect state. The recording model should behave like a tape recorder — re-recording over existing clips erases and replaces them — but it doesn't.
@@ -236,6 +236,7 @@ BUG-016 (P1) is a core recording-model bug: re-recording over existing clips doe
 | BUG-003 | P1 | Pinch-to-zoom timeline | PM Ralph | `b342358` |
 | BUG-014 | P1 | Segments silently disappear (data loss) | Engineer | `bce7bf5` |
 | BUG-015 | P2 | White/miscolored bars on import screen | Engineer | `7c5878e` |
+| BUG-016 | P1 | Re-recording doesn't overwrite segments | Engineer | `af9afc5` |
 
 ---
 
