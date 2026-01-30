@@ -114,10 +114,6 @@ final class PlayerViewModel {
             isIncluding = false
         }
 
-        // If actively excluding, close the exclusion at video end
-        let excludeUpdated = segmentManager.stopExcluding(at: duration)
-        segments = excludeUpdated
-
         // Finalize segments to cap at video duration and remove any zero-duration remnants
         let finalized = segmentManager.finalizeSegments(videoDuration: duration)
         segments = finalized
@@ -245,23 +241,11 @@ final class PlayerViewModel {
 
     func toggleInclude() {
         if isIncluding {
-            // Stop including → start actively excluding
+            // Stop including
             let updated = segmentManager.stopIncluding(at: currentTime)
             segments = updated
             isIncluding = false
-
-            // Begin active exclusion: playback through included segments will erase them
-            if !segments.isEmpty {
-                let excludeUpdated = segmentManager.beginExcluding(at: currentTime)
-                segments = excludeUpdated
-            }
         } else {
-            // Stop excluding (if active) → start including
-            if !segments.isEmpty {
-                let excludeUpdated = segmentManager.stopExcluding(at: currentTime)
-                segments = excludeUpdated
-            }
-
             // Start including
             let updated = segmentManager.beginIncluding(at: currentTime, videoDuration: duration)
             segments = updated
