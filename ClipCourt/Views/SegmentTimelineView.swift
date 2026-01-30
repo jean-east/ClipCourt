@@ -199,8 +199,22 @@ struct SegmentTimelineView: View {
                                 .frame(width: 0.5)
                         }
                     }
-                    .onLongPressGesture {
-                        viewModel.toggleSegment(segment)
+                    .contextMenu {
+                        if segment.isIncluded {
+                            Button(role: .destructive) {
+                                HapticManager.segmentTap()
+                                viewModel.toggleSegment(segment)
+                            } label: {
+                                Label("Delete Clip", systemImage: "trash")
+                            }
+                        } else {
+                            Button {
+                                HapticManager.segmentTap()
+                                viewModel.toggleSegment(segment)
+                            } label: {
+                                Label("Include Clip", systemImage: "plus.circle")
+                            }
+                        }
                     }
             }
 
