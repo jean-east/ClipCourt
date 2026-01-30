@@ -42,6 +42,7 @@ final class ExportViewModel {
     // MARK: - Private
 
     private var exportTask: Task<Void, Never>?
+    private var progressPollTask: Task<Void, Never>?
 
     // MARK: - Init
 
@@ -97,6 +98,9 @@ final class ExportViewModel {
                     )
                 }
 
+                // Clean up any prior share copies before creating a new one
+                await self.cleanupStaleShareCopies()
+
                 // Keep a copy for sharing before saving to Photos
                 let shareURL = FileManager.default.temporaryDirectory
                     .appendingPathComponent("ClipCourt_Share_\(Int(Date().timeIntervalSince1970)).mp4")
@@ -122,10 +126,12 @@ final class ExportViewModel {
             }
         }
 
-        // Poll progress from service
-        Task {
-            while state == .exporting {
-                progress = exportService.progress
+        // Poll progress from service (stored for cancellation, weak self to avoid leak)
+        progressPollTask = Task { [weak self] in
+            guard let self else { return }
+            while !Task.isCancelled, await self.state == .exporting {
+                let currentProgress = self.exportService.progress
+                await MainActor.run { self.progress = currentProgress }
                 try? await Task.sleep(for: .milliseconds(100))
             }
         }
@@ -134,6 +140,8 @@ final class ExportViewModel {
     /// Cancel an in-progress export.
     func cancelExport() {
         exportTask?.cancel()
+        progressPollTask?.cancel()
+        progressPollTask = nil
         exportService.cancelExport()
         state = .idle
         progress = 0
@@ -141,13 +149,34 @@ final class ExportViewModel {
 
     /// Reset state after viewing completion/error.
     func reset() {
-        // Clean up the share copy
+        // Clean up the share copy and any accumulated temp files
         if let url = exportedFileURL {
             try? FileManager.default.removeItem(at: url)
         }
         exportedFileURL = nil
+        cleanupStaleShareCopies()
         state = .idle
         progress = 0
         settings = .default
+    }
+
+    // MARK: - Temp File Cleanup
+
+    /// Remove all ClipCourt share copies from the temp directory.
+    /// Prevents accumulation of orphaned share files from prior exports.
+    private func cleanupStaleShareCopies() {
+        let tempDir = FileManager.default.temporaryDirectory
+        guard let contents = try? FileManager.default.contentsOfDirectory(
+            at: tempDir,
+            includingPropertiesForKeys: nil
+        ) else { return }
+
+        for file in contents where file.lastPathComponent.hasPrefix("ClipCourt_Share_")
+            && file.pathExtension == "mp4" {
+            // Don't delete the currently-tracked share file
+            if file != exportedFileURL {
+                try? FileManager.default.removeItem(at: file)
+            }
+        }
     }
 }
