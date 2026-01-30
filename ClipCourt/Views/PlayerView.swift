@@ -2,6 +2,7 @@
 // ClipCourt
 //
 // The main editing screen: video playback + toggle + timeline + export access.
+// Supports both portrait (VStack) and landscape (split panel) layouts.
 // "This is where I eat lunch" — and this is where users eat their HIGHLIGHTS.
 
 import AVKit
@@ -13,66 +14,29 @@ struct PlayerView: View {
 
     @Environment(PlayerViewModel.self) private var viewModel
     @Environment(ExportViewModel.self) private var exportViewModel
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+
+    // MARK: - Computed
+
+    /// True when in landscape (compact vertical size class)
+    private var isLandscape: Bool {
+        verticalSizeClass == .compact
+    }
 
     // MARK: - Body
 
     var body: some View {
         @Bindable var exportVM = exportViewModel
 
-        GeometryReader { geometry in
-            VStack(spacing: 0) {
-
-                // MARK: - Video Player
-                videoPlayerSection
-                    .overlay(alignment: .center) {
-                        fastForwardOverlay
-                    }
-                    .overlay {
-                        // Video player border glow when including (Design.md)
-                        if viewModel.isIncluding {
-                            RoundedRectangle(cornerRadius: 0)
-                                .strokeBorder(Color.ccInclude.opacity(0.25), lineWidth: 3)
-                                .allowsHitTesting(false)
-                                .animation(.easeInOut(duration: 0.3), value: viewModel.isIncluding)
-                        }
-                    }
-
-                // MARK: - Status Row
-                statusRow
-                    .padding(.horizontal, 16)
-                    .frame(height: 36)
-
-                // MARK: - Scrub Bar
-                scrubBar
-                    .padding(.horizontal, 16)
-                    .padding(.top, 4)
-
-                // MARK: - Segment Timeline
-                SegmentTimelineView()
-                    .frame(height: 48)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 8)
-
-                // MARK: - Playback Controls Row
-                playbackControlsRow
-                    .frame(height: 52)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 8)
-
-                // MARK: - The Big Toggle Button
-                toggleButton
-                    .padding(.horizontal, 16)
-                    .padding(.top, 12)
-
-                Spacer(minLength: 12)
-
-                // MARK: - Export Bar
-                exportBar
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 16)
+        Group {
+            if isLandscape {
+                landscapeLayout
+            } else {
+                portraitLayout
             }
         }
         .background(Color.ccBackground)
+        .animation(.easeInOut(duration: 0.35), value: isLandscape)
         .sheet(isPresented: $exportVM.showExportSheet) {
             ExportView()
         }
@@ -86,15 +50,166 @@ struct PlayerView: View {
         }
     }
 
-    // MARK: - Video Player Section
+    // MARK: - Portrait Layout (Design.md § Layout — Portrait)
 
-    private var videoPlayerSection: some View {
-        VideoPlayer(player: viewModel.playerService.player)
-            .disabled(true)  // Disable default controls; we provide our own
+    private var portraitLayout: some View {
+        GeometryReader { geometry in
+            VStack(spacing: 0) {
+                // Video Player
+                videoPlayerSection
+                    .overlay(alignment: .center) { fastForwardOverlay }
+                    .overlay { videoGlowBorder }
+
+                // Status Row
+                statusRow
+                    .padding(.horizontal, 16)
+                    .frame(height: 36)
+
+                // Scrub Bar
+                scrubBar
+                    .padding(.horizontal, 16)
+                    .padding(.top, 4)
+
+                // Segment Timeline (48pt portrait)
+                SegmentTimelineView()
+                    .frame(height: 48)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+
+                // Playback Controls Row
+                playbackControlsRow
+                    .frame(height: 52)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+
+                // Toggle Button (72pt portrait)
+                toggleButton(height: 72)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
+
+                Spacer(minLength: 12)
+
+                // Export Bar
+                exportBar
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 16)
+            }
+        }
     }
 
-    // MARK: - Fast Forward Overlay
+    // MARK: - Landscape Layout (Design.md § Layout — Landscape)
 
+    private var landscapeLayout: some View {
+        GeometryReader { geometry in
+            VStack(spacing: 0) {
+                // --- Top section: Video (left ~70%) + Right Panel (~30%) ---
+                HStack(spacing: 0) {
+                    // Video Player — fills left portion
+                    videoPlayerSection
+                        .overlay(alignment: .center) { fastForwardOverlay }
+                        .overlay { videoGlowBorder }
+                        .frame(width: geometry.size.width * 0.7)
+
+                    // Right Panel — controls
+                    landscapeRightPanel
+                        .frame(width: geometry.size.width * 0.3)
+                }
+
+                // --- Bottom Strip (80pt): Scrub Bar + Timeline ---
+                VStack(spacing: 0) {
+                    scrubBar
+                        .padding(.horizontal, 16)
+                        .frame(height: 44)
+
+                    SegmentTimelineView()
+                        .frame(height: 36)
+                        .padding(.horizontal, 16)
+                }
+                .frame(height: 80)
+            }
+        }
+    }
+
+    // MARK: - Landscape Right Panel (Design.md § Right Panel Layout)
+
+    private var landscapeRightPanel: some View {
+        VStack(spacing: 12) {
+            Spacer()
+
+            // Status indicator + timestamp
+            VStack(spacing: 4) {
+                HStack(spacing: 6) {
+                    Image(systemName: viewModel.isIncluding ? "record.circle" : "circle")
+                        .font(.caption)
+                        .foregroundStyle(viewModel.isIncluding ? Color.ccInclude : Color.ccTextSecondary)
+                        .symbolEffect(.pulse, isActive: viewModel.isIncluding)
+
+                    Text(viewModel.isIncluding ? "RECORDING" : "PAUSED")
+                        .font(.caption.bold())
+                        .tracking(1.5)
+                        .foregroundStyle(viewModel.isIncluding ? Color.ccInclude : Color.ccTextSecondary)
+                }
+
+                Text("\(TimeFormatter.format(viewModel.currentTime)) / \(TimeFormatter.format(viewModel.duration))")
+                    .font(.caption)
+                    .monospacedDigit()
+                    .foregroundStyle(Color.ccTextSecondary)
+            }
+
+            // Playback controls (compact row)
+            HStack(spacing: 16) {
+                // Skip Back 15s
+                Button {
+                    HapticManager.skip()
+                    viewModel.seek(to: max(0, viewModel.currentTime - 15))
+                } label: {
+                    Image(systemName: "gobackward.15")
+                        .font(.body)
+                        .foregroundStyle(Color.ccTextSecondary)
+                        .frame(width: 40, height: 40)
+                }
+
+                // Play/Pause
+                Button {
+                    HapticManager.playPause()
+                    viewModel.togglePlayPause()
+                } label: {
+                    Image(systemName: viewModel.isPlaying ? "pause.fill" : "play.fill")
+                        .font(.title3)
+                        .foregroundStyle(Color.ccTextPrimary)
+                        .contentTransition(.symbolEffect(.replace.downUp))
+                        .frame(width: 44, height: 44)
+                }
+
+                // Skip Forward 15s / Fast Forward
+                skipForwardButton(iconSize: .body, frameSize: 40)
+            }
+
+            // Speed selector
+            landscapeSpeedSelector
+
+            // Toggle button (56pt landscape)
+            toggleButton(height: 56)
+                .padding(.horizontal, 16)
+
+            // Export button
+            landscapeExportButton
+                .padding(.horizontal, 16)
+
+            Spacer()
+        }
+        .padding(.horizontal, 8)
+    }
+
+    // MARK: - Shared Components
+
+    // Video Player
+    private var videoPlayerSection: some View {
+        VideoPlayer(player: viewModel.playerService.player)
+            .disabled(true)
+    }
+
+    // Fast Forward Overlay
     @ViewBuilder
     private var fastForwardOverlay: some View {
         if viewModel.isFastForwarding {
@@ -111,11 +226,20 @@ struct PlayerView: View {
         }
     }
 
-    // MARK: - Status Row (toggle state + timestamp)
+    // Video border glow when including
+    @ViewBuilder
+    private var videoGlowBorder: some View {
+        if viewModel.isIncluding {
+            RoundedRectangle(cornerRadius: 0)
+                .strokeBorder(Color.ccInclude.opacity(0.25), lineWidth: 3)
+                .allowsHitTesting(false)
+                .animation(.easeInOut(duration: 0.3), value: viewModel.isIncluding)
+        }
+    }
 
+    // Status Row (portrait only)
     private var statusRow: some View {
         HStack {
-            // Toggle state indicator
             HStack(spacing: 6) {
                 Image(systemName: viewModel.isIncluding ? "record.circle" : "circle")
                     .font(.caption)
@@ -130,7 +254,6 @@ struct PlayerView: View {
 
             Spacer()
 
-            // Timestamp
             Text("\(TimeFormatter.format(viewModel.currentTime)) / \(TimeFormatter.format(viewModel.duration))")
                 .font(.caption)
                 .monospacedDigit()
@@ -138,8 +261,7 @@ struct PlayerView: View {
         }
     }
 
-    // MARK: - Scrub Bar
-
+    // Scrub Bar
     private var scrubBar: some View {
         Slider(
             value: Binding(
@@ -152,11 +274,9 @@ struct PlayerView: View {
         .frame(height: 44)
     }
 
-    // MARK: - Playback Controls Row
-
+    // Playback Controls Row (portrait)
     private var playbackControlsRow: some View {
         HStack(spacing: 0) {
-            // Skip Back 15s
             Button {
                 HapticManager.skip()
                 viewModel.seek(to: max(0, viewModel.currentTime - 15))
@@ -169,7 +289,6 @@ struct PlayerView: View {
 
             Spacer()
 
-            // Play/Pause
             Button {
                 HapticManager.playPause()
                 viewModel.togglePlayPause()
@@ -183,59 +302,85 @@ struct PlayerView: View {
 
             Spacer()
 
-            // Skip Forward 15s (tap) / Fast Forward (hold)
-            Image(systemName: viewModel.isFastForwarding ? "forward.fill" : "goforward.15")
-                .font(.title3)
-                .foregroundStyle(viewModel.isFastForwarding ? Color.ccSpeed : Color.ccTextSecondary)
-                .frame(width: 44, height: 44)
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    HapticManager.skip()
-                    viewModel.seek(to: min(viewModel.duration, viewModel.currentTime + 15))
-                }
-                .onLongPressGesture(minimumDuration: 0.3) {
-                    // This fires when the long press completes AND user lifts finger
-                    // For hold-to-FF, we need the pressing/onChange approach
-                } onPressingChanged: { pressing in
-                    if pressing {
-                        // Finger down for 0.3s — start fast forward
-                        HapticManager.fastForwardEngage()
-                        viewModel.beginFastForward()
-                    } else if viewModel.isFastForwarding {
-                        // Finger lifted — stop fast forward
-                        HapticManager.fastForwardRelease()
-                        viewModel.endFastForward()
-                    }
-                }
+            skipForwardButton(iconSize: .title3, frameSize: 44)
 
             Spacer()
 
-            // Speed Selector
-            Menu {
-                ForEach(PlaybackSpeed.allCases) { speed in
-                    Button(speed.displayName) {
-                        HapticManager.speedChange()
-                        viewModel.setPlaybackSpeed(speed)
-                    }
-                }
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: "gauge.with.needle.fill")
-                        .font(.caption2)
-                    Text(viewModel.playbackSpeed.displayName)
-                        .font(.caption.bold())
-                }
-                .foregroundStyle(Color.ccTextSecondary)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(Color.ccSurfaceElevated, in: Capsule())
-            }
+            speedSelector
         }
     }
 
-    // MARK: - The Big Toggle Button (Design.md: 72pt tall, full width)
+    // Skip Forward button (shared, parameterized)
+    private func skipForwardButton(iconSize: Font, frameSize: CGFloat) -> some View {
+        Image(systemName: viewModel.isFastForwarding ? "forward.fill" : "goforward.15")
+            .font(iconSize)
+            .foregroundStyle(viewModel.isFastForwarding ? Color.ccSpeed : Color.ccTextSecondary)
+            .frame(width: frameSize, height: frameSize)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                HapticManager.skip()
+                viewModel.seek(to: min(viewModel.duration, viewModel.currentTime + 15))
+            }
+            .onLongPressGesture(minimumDuration: 0.3) {
+            } onPressingChanged: { pressing in
+                if pressing {
+                    HapticManager.fastForwardEngage()
+                    viewModel.beginFastForward()
+                } else if viewModel.isFastForwarding {
+                    HapticManager.fastForwardRelease()
+                    viewModel.endFastForward()
+                }
+            }
+    }
 
-    private var toggleButton: some View {
+    // Speed Selector (portrait)
+    private var speedSelector: some View {
+        Menu {
+            ForEach(PlaybackSpeed.allCases) { speed in
+                Button(speed.displayName) {
+                    HapticManager.speedChange()
+                    viewModel.setPlaybackSpeed(speed)
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "gauge.with.needle.fill")
+                    .font(.caption2)
+                Text(viewModel.playbackSpeed.displayName)
+                    .font(.caption.bold())
+            }
+            .foregroundStyle(Color.ccTextSecondary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Color.ccSurfaceElevated, in: Capsule())
+        }
+    }
+
+    // Speed Selector (landscape — centered below controls)
+    private var landscapeSpeedSelector: some View {
+        Menu {
+            ForEach(PlaybackSpeed.allCases) { speed in
+                Button(speed.displayName) {
+                    HapticManager.speedChange()
+                    viewModel.setPlaybackSpeed(speed)
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "gauge.with.needle.fill")
+                    .font(.caption2)
+                Text(viewModel.playbackSpeed.displayName)
+                    .font(.caption.bold())
+            }
+            .foregroundStyle(Color.ccTextSecondary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Color.ccSurfaceElevated, in: Capsule())
+        }
+    }
+
+    // Toggle Button (shared, parameterized height)
+    private func toggleButton(height: CGFloat) -> some View {
         Button {
             if viewModel.isIncluding {
                 HapticManager.toggleOff()
@@ -255,7 +400,7 @@ struct PlayerView: View {
             }
             .foregroundStyle(viewModel.isIncluding ? Color.ccInclude : Color.ccTextSecondary)
             .frame(maxWidth: .infinity)
-            .frame(height: 72)
+            .frame(height: height)
             .background(
                 viewModel.isIncluding
                     ? Color.ccInclude.opacity(0.15)
@@ -278,11 +423,9 @@ struct PlayerView: View {
         .animation(.spring(response: 0.5, dampingFraction: 0.7), value: viewModel.isIncluding)
     }
 
-    // MARK: - Export Bar
-
+    // Export Bar (portrait)
     private var exportBar: some View {
         HStack {
-            // Close project
             Button {
                 viewModel.closeProject()
             } label: {
@@ -293,7 +436,6 @@ struct PlayerView: View {
 
             Spacer()
 
-            // Included duration summary
             if let project = viewModel.project {
                 Text("\(TimeFormatter.format(project.includedDuration)) selected")
                     .font(.caption)
@@ -302,28 +444,56 @@ struct PlayerView: View {
 
             Spacer()
 
-            // Export button (Signal Blue, pill shape)
-            Button {
-                HapticManager.exportTap()
-                exportViewModel.showExportSheet = true
-            } label: {
-                Label("Export", systemImage: "square.and.arrow.up")
-                    .font(.headline.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 20)
-                    .frame(height: 44)
-                    .background(Color.ccExport, in: Capsule())
-            }
-            .disabled(viewModel.segments.filter(\.isIncluded).isEmpty)
-            .opacity(viewModel.segments.filter(\.isIncluded).isEmpty ? 0.4 : 1.0)
+            exportPill
         }
+    }
+
+    // Export button (landscape right panel)
+    private var landscapeExportButton: some View {
+        HStack {
+            Button {
+                viewModel.closeProject()
+            } label: {
+                Image(systemName: "xmark.circle")
+                    .font(.caption)
+                    .foregroundStyle(Color.ccTextSecondary)
+            }
+
+            Spacer()
+
+            exportPill
+        }
+    }
+
+    // Export pill button (shared)
+    private var exportPill: some View {
+        Button {
+            HapticManager.exportTap()
+            exportViewModel.showExportSheet = true
+        } label: {
+            Label("Export", systemImage: "square.and.arrow.up")
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 20)
+                .frame(height: 44)
+                .background(Color.ccExport, in: Capsule())
+        }
+        .disabled(viewModel.segments.filter(\.isIncluded).isEmpty)
+        .opacity(viewModel.segments.filter(\.isIncluded).isEmpty ? 0.4 : 1.0)
     }
 }
 
 // MARK: - Preview
 
-#Preview {
+#Preview("Portrait") {
     PlayerView()
         .environment(PlayerViewModel())
         .environment(ExportViewModel())
+}
+
+#Preview("Landscape") {
+    PlayerView()
+        .environment(PlayerViewModel())
+        .environment(ExportViewModel())
+        .previewInterfaceOrientation(.landscapeLeft)
 }
