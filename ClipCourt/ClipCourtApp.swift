@@ -64,6 +64,7 @@ struct ContentView: View {
             }
         }
         .background(Color.ccBackground.ignoresSafeArea())
+        .preferredColorScheme(.dark)
         .animation(.easeInOut(duration: 0.3), value: playerViewModel.hasActiveProject)
         .task {
             await playerViewModel.attemptResumeSession()
