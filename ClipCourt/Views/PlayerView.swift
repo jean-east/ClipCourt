@@ -510,8 +510,8 @@ struct PlayerView: View {
                 .frame(height: 44)
                 .background(Color.ccExport, in: Capsule())
         }
-        .disabled(viewModel.segments.filter(\.isIncluded).isEmpty)
-        .opacity(viewModel.segments.filter(\.isIncluded).isEmpty ? 0.4 : 1.0)
+        .disabled(!viewModel.hasIncludedSegments)
+        .opacity(viewModel.hasIncludedSegments ? 1.0 : 0.4)
     }
 
     // MARK: - Settings Button
