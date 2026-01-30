@@ -53,11 +53,8 @@ final class SegmentManager: SegmentManaging {
     /// initialize the timeline if preRecordingSegments was empty.
     private var recordingVideoDuration: Double?
 
-    /// If recording started inside an existing included segment, stores that
-    /// segment's original bounds. On stop, this entire range is first excluded
-    /// before the new keep is applied — so re-keeping a shorter portion properly
-    /// replaces the old longer one instead of merging back.
-    private var recordingOriginalIncludedRange: (start: Double, end: Double)?
+    // (recordingOriginalIncludedRange removed — stopIncluding now dynamically
+    // finds all overlapping included segments to exclude)
 
     // MARK: - Computed Properties
 
@@ -120,11 +117,6 @@ final class SegmentManager: SegmentManaging {
             }
             // BUG-016: If already included, no split needed — recordingStartTime is
             // stored above, so stopIncluding() will handle the full range replacement.
-            // Store the original segment's bounds so stopIncluding can exclude it
-            // before applying the new (potentially shorter) keep range.
-            if seg.isIncluded {
-                recordingOriginalIncludedRange = (start: seg.startTime, end: seg.endTime)
-            }
         } else if t >= (segments.last?.endTime ?? 0) {
             // Beyond all segments — extend to video end
             let lastEnd = segments.last?.endTime ?? 0
@@ -177,25 +169,28 @@ final class SegmentManager: SegmentManaging {
                     segments = baseline
                 }
             }
-            // If re-keeping inside an existing kept segment, first exclude the
-            // entire original segment, then apply the new keep using the earlier
-            // of the original start or new start (preserve the original beginning
-            // if it was earlier) but use the new end time.
-            let effectiveStart: Double
-            if let originalRange = recordingOriginalIncludedRange {
-                replaceRange(from: originalRange.start, to: originalRange.end, asIncluded: false)
-                effectiveStart = min(originalRange.start, startTime)
-            } else {
-                effectiveStart = startTime
+            // Find ALL included segments that overlap with the recording range.
+            // Exclude their full extent so the new keep cleanly replaces them —
+            // even if the new keep is shorter or spans multiple old segments.
+            let rangeStart = min(startTime, time)
+            let rangeEnd = max(startTime, time)
+            var effectiveStart = startTime
+
+            for seg in segments where seg.isIncluded {
+                if seg.startTime < rangeEnd && seg.endTime > rangeStart {
+                    // This included segment overlaps — preserve the earliest start
+                    effectiveStart = min(effectiveStart, seg.startTime)
+                    // Exclude the entire overlapping segment
+                    replaceRange(from: seg.startTime, to: seg.endTime, asIncluded: false)
+                }
             }
-            // BUG-016: Range replacement — overwrite all segments in [start, stop]
-            // with a single included segment. Trim partially overlapping segments,
-            // remove fully contained ones.
+
+            // Apply the new keep with the effective start (preserves original
+            // earlier beginning) and the new end time.
             replaceRange(from: effectiveStart, to: time)
             recordingStartTime = nil
             preRecordingSegments = nil
             recordingVideoDuration = nil
-            recordingOriginalIncludedRange = nil
         } else {
             // Fallback: point-in-time split (e.g., restored session without recordingStartTime)
             if let index = segmentIndex(containing: time) {
@@ -288,7 +283,6 @@ final class SegmentManager: SegmentManaging {
         recordingStartTime = nil
         preRecordingSegments = nil
         recordingVideoDuration = nil
-        recordingOriginalIncludedRange = nil
     }
 
     /// Cap the last segment's endTime to the actual video duration
@@ -320,7 +314,6 @@ final class SegmentManager: SegmentManaging {
         recordingStartTime = nil
         preRecordingSegments = nil
         recordingVideoDuration = nil
-        recordingOriginalIncludedRange = nil
     }
 
     // MARK: - Private: Range Replacement (BUG-016)
