@@ -182,11 +182,28 @@ struct SegmentTimelineView: View {
 
             // Segment blocks
             ForEach(viewModel.segments) { segment in
-                // While keeping, cap the visual end of the active segment to the playhead
-                // so green fills progressively instead of pre-populating ahead
+                // While keeping, show progressive green fill:
+                // - Segments between recordingStart and playhead show as green
+                //   (they'll be replaced by one keep segment on stop)
+                // - The segment containing the playhead is capped at currentTime
+                // - Segments ahead of the playhead are NOT shown as green
+                let keepingStart = viewModel.keepingStartTime
+                let isActivelyKeeping = viewModel.isIncluding && keepingStart != nil
+
+                let visuallyIncluded: Bool = {
+                    guard isActivelyKeeping, let start = keepingStart else {
+                        return segment.isIncluded
+                    }
+                    // Show as green if segment is between keeping start and playhead
+                    let keepStart = min(start, viewModel.currentTime)
+                    let keepEnd = max(start, viewModel.currentTime)
+                    return segment.startTime >= keepStart && segment.endTime <= keepEnd
+                        || segment.isIncluded && segment.endTime <= keepStart
+                        || segment.isIncluded && segment.startTime >= keepEnd
+                }()
+
                 let visualEndTime: Double = {
-                    if viewModel.isIncluding
-                        && segment.isIncluded
+                    if isActivelyKeeping
                         && segment.startTime <= viewModel.currentTime
                         && segment.endTime > viewModel.currentTime {
                         return viewModel.currentTime
@@ -200,7 +217,7 @@ struct SegmentTimelineView: View {
                 let segmentX = startFraction * contentWidth
 
                 Rectangle()
-                    .fill(segmentFillColor(segment))
+                    .fill(segmentFillColor(segment, visuallyIncluded: visuallyIncluded))
                     .frame(width: segmentWidth, height: containerHeight)
                     .offset(x: segmentX)
                     // Border separators when zoomed (Design.md)
@@ -282,10 +299,10 @@ struct SegmentTimelineView: View {
 
     // MARK: - Segment Color
 
-    private func segmentFillColor(_ segment: Segment) -> Color {
+    private func segmentFillColor(_ segment: Segment, visuallyIncluded: Bool) -> Color {
         let isCurrentSegment = segment.contains(time: viewModel.currentTime)
 
-        if segment.isIncluded {
+        if visuallyIncluded {
             // Design.md: Rally Green full opacity for all included segments
             // ccIncludeGlow is only for glow/border effects, not segment fills
             return Color.ccInclude

@@ -46,6 +46,7 @@ final class PlayerViewModel {
     var isPlaying: Bool = false
     var isAtEnd: Bool = false
     var isIncluding: Bool = false
+    var keepingStartTime: Double?
     var currentTime: Double = 0
     var duration: Double = 0
     var segments: [Segment] = []
@@ -114,6 +115,7 @@ final class PlayerViewModel {
             let updated = segmentManager.stopIncluding(at: duration)
             segments = updated
             isIncluding = false
+            keepingStartTime = nil
         }
 
         // Finalize segments to cap at video duration and remove any zero-duration remnants
@@ -220,6 +222,7 @@ final class PlayerViewModel {
             let updated = segmentManager.stopIncluding(at: currentTime)
             segments = updated
             isIncluding = false
+            keepingStartTime = nil
         }
 
         Task {
@@ -269,8 +272,10 @@ final class PlayerViewModel {
             let updated = segmentManager.stopIncluding(at: currentTime)
             segments = updated
             isIncluding = false
+            keepingStartTime = nil
         } else {
             // Start including
+            keepingStartTime = currentTime
             let updated = segmentManager.beginIncluding(at: currentTime, videoDuration: duration)
             segments = updated
             isIncluding = true
