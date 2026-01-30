@@ -70,9 +70,9 @@ struct PlayerView: View {
                     .padding(.horizontal, 16)
                     .padding(.top, 4)
 
-                // Segment Timeline (48pt portrait)
+                // Segment Timeline (Design.md: 48pt portrait)
                 SegmentTimelineView()
-                    .frame(height: 48)
+                    .frame(height: Constants.UI.timelineHeight)
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
 
@@ -450,6 +450,14 @@ struct PlayerView: View {
                 viewModel.closeProject()
             } label: {
                 Image(systemName: "xmark.circle")
+                    .font(.caption)
+                    .foregroundStyle(Color.ccTextSecondary)
+            }
+
+            Spacer()
+
+            if let project = viewModel.project {
+                Text("\(TimeFormatter.format(project.includedDuration)) selected")
                     .font(.caption)
                     .foregroundStyle(Color.ccTextSecondary)
             }
