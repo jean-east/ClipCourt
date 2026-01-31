@@ -187,7 +187,28 @@ struct SegmentCanvasView: View {
         Canvas { context, size in
             let visibleStart = scrollOffset - edgePadding
             let visibleEnd = visibleStart + viewportWidth
+            let videoEndX = size.width - edgePadding
 
+            // -- Out-of-bounds zones: darker background to indicate "no video here" --
+            // Before video start (0 → edgePadding)
+            let preRect = CGRect(x: 0, y: 0, width: edgePadding, height: size.height)
+            context.fill(Path(preRect), with: .color(Color.ccBackground))
+
+            // After video end (videoEndX → end)
+            let postRect = CGRect(x: videoEndX, y: 0,
+                                  width: size.width - videoEndX, height: size.height)
+            context.fill(Path(postRect), with: .color(Color.ccBackground))
+
+            // -- Boundary separator lines (subtle 1pt vertical markers) --
+            let startLine = CGRect(x: edgePadding - 0.5, y: 0,
+                                   width: 1, height: size.height)
+            context.fill(Path(startLine), with: .color(Color.ccTextTertiary.opacity(0.3)))
+
+            let endLine = CGRect(x: videoEndX - 0.5, y: 0,
+                                 width: 1, height: size.height)
+            context.fill(Path(endLine), with: .color(Color.ccTextTertiary.opacity(0.3)))
+
+            // -- Segments --
             for segment in segments {
                 guard segment.isIncluded else { continue }
 
