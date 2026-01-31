@@ -247,6 +247,8 @@ struct SegmentTimelineView: View {
                         }
                     }
                     .onLongPressGesture {
+                        // BUG-9970871455: Long-press is delete-only — only exclude included segments.
+                        guard segment.isIncluded else { return }
                         viewModel.toggleSegment(segment)
                     }
             }
