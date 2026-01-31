@@ -12,6 +12,7 @@ struct SettingsView: View {
 
     @AppStorage("holdPlaybackSpeed") private var holdPlaybackSpeed: Double = 2.0
     @AppStorage("keepingUIStyle") private var keepingUIStyle: String = "button"
+    @AppStorage("scrubWhileKeeping") private var scrubWhileKeeping: String = "pauseOnScrub"
 
     @Environment(\.dismiss) private var dismiss
 
@@ -32,12 +33,22 @@ struct SettingsView: View {
 
                 // MARK: Settings
                 Section {
-                    // Hold-to-fast-forward speed
-                    Picker("Hold to Fast Forward", selection: $holdPlaybackSpeed) {
+                    // Long-press playback speed
+                    Picker("Long Press Speed", selection: $holdPlaybackSpeed) {
+                        Text("0.25×").tag(0.25)
+                        Text("0.5×").tag(0.5)
+                        Text("0.75×").tag(0.75)
+                        Text("1×").tag(1.0)
                         Text("1.5×").tag(1.5)
                         Text("2×").tag(2.0)
                         Text("3×").tag(3.0)
                         Text("4×").tag(4.0)
+                    }
+
+                    // Scrub-while-keeping behavior
+                    Picker("Scrub While Keeping", selection: $scrubWhileKeeping) {
+                        Text("Pause on Scrub").tag("pauseOnScrub")
+                        Text("Keep Playing").tag("keepPlaying")
                     }
 
                     // Keeping UI style

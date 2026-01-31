@@ -18,6 +18,8 @@ struct ImportView: View {
     @State private var selectedItem: PhotosPickerItem?
     @State private var isProcessing = false
     @State private var errorMessage: String?
+    @State private var showReplaceConfirmation = false
+    @State private var pendingItem: PhotosPickerItem?
 
     // MARK: - Body
 
@@ -67,12 +69,25 @@ struct ImportView: View {
 
                 // Body (Design.md: .body Regular, ccTextSecondary)
                 Text(canGoBack
-                     ? "Pick a new game film, or go back to continue editing"
+                     ? "Pick a new game film, or go back to continue editing."
                      : "Pick a game film from your camera roll and start clipping")
                     .font(.body)
                     .foregroundStyle(Color.ccTextSecondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
+
+                // Warning when replacing active project
+                if canGoBack {
+                    Label(
+                        "Choosing a new video will replace your current highlights.",
+                        systemImage: "exclamationmark.triangle.fill"
+                    )
+                    .font(.subheadline)
+                    .foregroundStyle(Color.ccDanger)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+                    .padding(.top, 4)
+                }
             }
 
             Spacer()
@@ -111,9 +126,34 @@ struct ImportView: View {
         }
         .background(Color.ccBackground.ignoresSafeArea())
         .onChange(of: selectedItem) { _, newItem in
-            Task {
-                await handleSelection(newItem)
+            guard let newItem else { return }
+            if canGoBack {
+                // Active project exists — confirm before replacing
+                pendingItem = newItem
+                selectedItem = nil
+                showReplaceConfirmation = true
+            } else {
+                Task {
+                    await handleSelection(newItem)
+                }
             }
+        }
+        .alert(
+            "Start a new video?",
+            isPresented: $showReplaceConfirmation
+        ) {
+            Button("Keep Editing", role: .cancel) {
+                pendingItem = nil
+            }
+            Button("Start New Video", role: .destructive) {
+                guard let item = pendingItem else { return }
+                pendingItem = nil
+                Task {
+                    await handleSelection(item)
+                }
+            }
+        } message: {
+            Text("All the highlights you've saved from your current video will be lost. This can't be undone.")
         }
         // Make entire empty state tappable (Design.md: forgiving design)
         .contentShape(Rectangle())

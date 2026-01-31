@@ -205,12 +205,19 @@ struct SegmentTimelineView: View {
                     guard isActivelyKeeping, let start = keepingStart else {
                         return segment.isIncluded
                     }
-                    // Show as green if segment is between keeping start and playhead
+                    // During active keeping, the region [keepStart, playhead]
+                    // should be visually green (tape-recorder semantics —
+                    // overrides any segment state within the active range).
+                    // Segments outside the range retain their committed state.
                     let keepStart = min(start, viewModel.currentTime)
                     let keepEnd = max(start, viewModel.currentTime)
-                    return segment.startTime >= keepStart && segment.endTime <= keepEnd
-                        || segment.isIncluded && segment.endTime <= keepStart
-                        || segment.isIncluded && segment.startTime >= keepEnd
+
+                    // Segment overlaps with the active keep range → green
+                    if segment.startTime < keepEnd && segment.endTime > keepStart {
+                        return true
+                    }
+                    // Outside keep range: use committed isIncluded state
+                    return segment.isIncluded
                 }()
 
                 let visualEndTime: Double = {
@@ -257,7 +264,7 @@ struct SegmentTimelineView: View {
                     .fill(Color.ccTextPrimary)
                     .frame(width: 2)
             }
-            .offset(x: playheadX - 1) // center the 2pt line
+            .offset(x: playheadX - 4) // center the 2pt line within the 8pt-wide VStack
             .animation(.linear(duration: 0.05), value: viewModel.currentTime)
         }
     }

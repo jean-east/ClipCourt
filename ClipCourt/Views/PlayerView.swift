@@ -19,6 +19,7 @@ struct PlayerView: View {
     @State private var showSettings = false
     @AppStorage("holdPlaybackSpeed") private var holdPlaybackSpeed: Double = 2.0
     @AppStorage("keepingUIStyle") private var keepingUIStyle: String = "button"
+    @AppStorage("scrubWhileKeeping") private var scrubWhileKeeping: String = "pauseOnScrub"
 
     // MARK: - Computed
 
@@ -211,19 +212,34 @@ struct PlayerView: View {
 
     // MARK: - Shared Components
 
-    // Video Player
+    // Video Player (with hold-to-apply-speed gesture on viewport)
     private var videoPlayerSection: some View {
         VideoPlayer(player: viewModel.playerService.player)
             .disabled(true)
+            .overlay {
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onLongPressGesture(minimumDuration: 0.3) {
+                        // Required completion — no-op; onPressingChanged handles lifecycle
+                    } onPressingChanged: { pressing in
+                        if pressing {
+                            HapticManager.fastForwardEngage()
+                            viewModel.beginFastForward()
+                        } else if viewModel.isFastForwarding {
+                            HapticManager.fastForwardRelease()
+                            viewModel.endFastForward()
+                        }
+                    }
+            }
     }
 
-    // Fast Forward Overlay
+    // Hold-Speed Overlay (shown while long-pressing viewport or skip-forward)
     @ViewBuilder
     private var fastForwardOverlay: some View {
         if viewModel.isFastForwarding {
             HStack(spacing: 6) {
-                Image(systemName: "forward.fill")
-                Text(fastForwardSpeedLabel)
+                Image(systemName: holdPlaybackSpeed > 1.0 ? "forward.fill" : "play.fill")
+                Text(holdSpeedLabel)
                     .font(.title3.bold())
             }
             .foregroundStyle(Color.ccSpeed)
@@ -234,11 +250,11 @@ struct PlayerView: View {
         }
     }
 
-    /// Formatted label for the current hold-to-fast-forward speed.
-    private var fastForwardSpeedLabel: String {
+    /// Formatted label for the current long-press playback speed.
+    private var holdSpeedLabel: String {
         holdPlaybackSpeed.truncatingRemainder(dividingBy: 1) == 0
             ? "\(Int(holdPlaybackSpeed))×"
-            : String(format: "%.1f×", holdPlaybackSpeed)
+            : String(format: "%.2g×", holdPlaybackSpeed)
     }
 
     // Video border glow when including
@@ -276,14 +292,22 @@ struct PlayerView: View {
         }
     }
 
-    // Scrub Bar
+    // Scrub Bar (with optional pause-on-scrub when keeping is active)
     private var scrubBar: some View {
         Slider(
             value: Binding(
                 get: { viewModel.currentTime },
                 set: { viewModel.seek(to: $0) }
             ),
-            in: 0...max(viewModel.duration, 0.01)
+            in: 0...max(viewModel.duration, 0.01),
+            onEditingChanged: { editing in
+                if editing
+                    && viewModel.isIncluding
+                    && viewModel.isPlaying
+                    && scrubWhileKeeping == "pauseOnScrub" {
+                    viewModel.togglePlayPause()
+                }
+            }
         )
         .tint(Color.ccTextPrimary.opacity(0.8))
         .frame(height: 44)

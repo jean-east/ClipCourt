@@ -14,7 +14,6 @@
 		21B17B65D56C3FDB52064C08 /* Segment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 613AAE658CE6039DBBF3CCFE /* Segment.swift */; };
 		2A942D26BCB32A9D37DE6047 /* PersistenceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E126F2C8A98FCFDE58137D74 /* PersistenceService.swift */; };
 		2FE2359EAF0420270188485F /* Color+ClipCourt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8335F91B6EF5DC2B36CB1A2E /* Color+ClipCourt.swift */; };
-		30EB2567FFF7AFE02CC6211E /* SegmentManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CAE0DF0A6D7A455D6288846 /* SegmentManagerTests.swift */; };
 		53EEE7CDDEEFD8B0EE7EB5B6 /* ExportViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F28AB2A68CD1B2FEE7B4A938 /* ExportViewModel.swift */; };
 		559CE171A32CCE5A1A8D3024 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73ACF8C585C18518A1786AEE /* SettingsView.swift */; };
 		5F7CD942076533E2F0AA5CC5 /* ExportSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = C899FC8241C14AE5EA29BDD5 /* ExportSettings.swift */; };
@@ -31,16 +30,6 @@
 		F71EFEE84391C682E4EBCEC8 /* ExportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 177A4AD6326485D74653A5AC /* ExportView.swift */; };
 /* End PBXBuildFile section */
 
-/* Begin PBXContainerItemProxy section */
-		45BC63F38AC1A90847B6E8A7 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F6593468AA5FB7884DA71CA6 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 89A308E1ED0CFAC1F1D254AF;
-			remoteInfo = ClipCourt;
-		};
-/* End PBXContainerItemProxy section */
-
 /* Begin PBXFileReference section */
 		08EB2BC4338E34B7DB6CDF31 /* SegmentTimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SegmentTimelineView.swift; sourceTree = "<group>"; };
 		0E2112350F6C2D7F943CCE1D /* VideoPlayerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoPlayerService.swift; sourceTree = "<group>"; };
@@ -49,7 +38,6 @@
 		2F61D4FB58965EF78CE60F8D /* ImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportView.swift; sourceTree = "<group>"; };
 		350A10636FDA9252B14FEC1F /* SegmentManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SegmentManager.swift; sourceTree = "<group>"; };
 		50ADD3FE0ECDD3A789915527 /* Project.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Project.swift; sourceTree = "<group>"; };
-		5CAE0DF0A6D7A455D6288846 /* SegmentManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SegmentManagerTests.swift; sourceTree = "<group>"; };
 		5E433303B659C64B8F1A97A6 /* PlayerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerViewModel.swift; sourceTree = "<group>"; };
 		613AAE658CE6039DBBF3CCFE /* Segment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Segment.swift; sourceTree = "<group>"; };
 		705A80486ED5AECC8DFF2F55 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
@@ -63,28 +51,16 @@
 		C899FC8241C14AE5EA29BDD5 /* ExportSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportSettings.swift; sourceTree = "<group>"; };
 		CD7557C040AD994B797418C6 /* ExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportService.swift; sourceTree = "<group>"; };
 		D4BEBFE449B1847D9B632EA9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
-		DAAB7E0CBA7F39413E9179E5 /* ClipCourtTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = ClipCourtTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		DD3CDD19424F4CBBAF1F71A6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		E126F2C8A98FCFDE58137D74 /* PersistenceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceService.swift; sourceTree = "<group>"; };
 		E4B2139241FDBCF0895CEF7E /* ClipCourt.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = ClipCourt.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F28AB2A68CD1B2FEE7B4A938 /* ExportViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportViewModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
-		054EE6A16DD3F0E2ED3F1D17 /* ClipCourtTests */ = {
-			isa = PBXGroup;
-			children = (
-				DD3CDD19424F4CBBAF1F71A6 /* Info.plist */,
-				5CAE0DF0A6D7A455D6288846 /* SegmentManagerTests.swift */,
-			);
-			path = ClipCourtTests;
-			sourceTree = "<group>";
-		};
 		5812763A0A55C04D0F406FC3 /* Products */ = {
 			isa = PBXGroup;
 			children = (
 				E4B2139241FDBCF0895CEF7E /* ClipCourt.app */,
-				DAAB7E0CBA7F39413E9179E5 /* ClipCourtTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -139,7 +115,6 @@
 			isa = PBXGroup;
 			children = (
 				B463894276E49B1F870FE46D /* ClipCourt */,
-				054EE6A16DD3F0E2ED3F1D17 /* ClipCourtTests */,
 				5812763A0A55C04D0F406FC3 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -170,24 +145,6 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		7077510C714965BD88697DB1 /* ClipCourtTests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = B9A0A280851CEBF68989818B /* Build configuration list for PBXNativeTarget "ClipCourtTests" */;
-			buildPhases = (
-				61A508DD08EB21CBBB2EA189 /* Sources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				7E6066289B87BDF9C2DAB183 /* PBXTargetDependency */,
-			);
-			name = ClipCourtTests;
-			packageProductDependencies = (
-			);
-			productName = ClipCourtTests;
-			productReference = DAAB7E0CBA7F39413E9179E5 /* ClipCourtTests.xctest */;
-			productType = "com.apple.product-type.bundle.unit-test";
-		};
 		89A308E1ED0CFAC1F1D254AF /* ClipCourt */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 78BCFC1EEEFB1B68F66D411B /* Build configuration list for PBXNativeTarget "ClipCourt" */;
@@ -235,7 +192,6 @@
 			projectRoot = "";
 			targets = (
 				89A308E1ED0CFAC1F1D254AF /* ClipCourt */,
-				7077510C714965BD88697DB1 /* ClipCourtTests */,
 			);
 		};
 /* End PBXProject section */
@@ -252,14 +208,6 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		61A508DD08EB21CBBB2EA189 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				30EB2567FFF7AFE02CC6211E /* SegmentManagerTests.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		8B5B9642D7318FFD3A71F7ED /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -288,14 +236,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXTargetDependency section */
-		7E6066289B87BDF9C2DAB183 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 89A308E1ED0CFAC1F1D254AF /* ClipCourt */;
-			targetProxy = 45BC63F38AC1A90847B6E8A7 /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		1879E9F355C31F4C2573D7A2 /* Release */ = {
@@ -461,42 +401,6 @@
 			};
 			name = Debug;
 		};
-		A393E5BB0CBB8004B797FB91 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				INFOPLIST_FILE = ClipCourtTests/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@loader_path/Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.clipcourt.tests;
-				SDKROOT = iphoneos;
-				SWIFT_VERSION = 5.9;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ClipCourt.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ClipCourt";
-			};
-			name = Release;
-		};
-		AE34E787AE448564D5960DAB /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				INFOPLIST_FILE = ClipCourtTests/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@loader_path/Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.clipcourt.tests;
-				SDKROOT = iphoneos;
-				SWIFT_VERSION = 5.9;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ClipCourt.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ClipCourt";
-			};
-			name = Debug;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -514,15 +418,6 @@
 			buildConfigurations = (
 				8B12B55DAE8828652B813290 /* Debug */,
 				1879E9F355C31F4C2573D7A2 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Debug;
-		};
-		B9A0A280851CEBF68989818B /* Build configuration list for PBXNativeTarget "ClipCourtTests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				AE34E787AE448564D5960DAB /* Debug */,
-				A393E5BB0CBB8004B797FB91 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

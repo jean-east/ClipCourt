@@ -60,6 +60,14 @@ final class PlayerViewModel {
     /// Avoids re-filtering the segments array every render cycle.
     var hasIncludedSegments: Bool = false
 
+    /// The time up to which the timeline should show green fill during active keeping.
+    /// Returns the current playhead position when actively keeping, nil otherwise.
+    /// Used by SegmentTimelineView to cap the green progressive fill at the playhead.
+    var greenFillEnd: Double? {
+        guard isIncluding, keepingStartTime != nil else { return nil }
+        return currentTime
+    }
+
     // MARK: - Project
 
     private(set) var project: Project?
