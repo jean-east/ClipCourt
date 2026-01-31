@@ -19,7 +19,6 @@ struct PlayerView: View {
     @State private var showSettings = false
     @AppStorage("holdPlaybackSpeed") private var holdPlaybackSpeed: Double = 2.0
     @AppStorage("keepingUIStyle") private var keepingUIStyle: String = "button"
-    @AppStorage("scrubWhileKeeping") private var scrubWhileKeeping: String = "pauseOnScrub"
 
     // MARK: - Computed
 
@@ -74,14 +73,8 @@ struct PlayerView: View {
                     .padding(.horizontal, 16)
                     .frame(height: 36)
 
-                // Scrub Bar
-                scrubBar
-                    .padding(.horizontal, 16)
-                    .padding(.top, 4)
-
-                // Segment Timeline (Design.md: 48pt portrait)
-                SegmentTimelineView()
-                    .frame(height: Constants.UI.timelineHeight)
+                // Scrollable Timeline (Design.md: 48pt portrait)
+                ScrollableTimelineView()
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
 
@@ -151,13 +144,8 @@ struct PlayerView: View {
                         .foregroundStyle(Color.ccTextSecondary)
                 }
 
-                // Scrub bar
-                scrubBar
-                    .padding(.horizontal, 4)
-
-                // Segment timeline (36pt in landscape)
-                SegmentTimelineView()
-                    .frame(height: 36)
+                // Scrollable timeline
+                ScrollableTimelineView()
                     .padding(.horizontal, 4)
 
                 // Playback controls (compact row)
@@ -290,27 +278,6 @@ struct PlayerView: View {
                 .monospacedDigit()
                 .foregroundStyle(Color.ccTextSecondary)
         }
-    }
-
-    // Scrub Bar (with optional pause-on-scrub when keeping is active)
-    private var scrubBar: some View {
-        Slider(
-            value: Binding(
-                get: { viewModel.currentTime },
-                set: { viewModel.seek(to: $0) }
-            ),
-            in: 0...max(viewModel.duration, 0.01),
-            onEditingChanged: { editing in
-                if editing
-                    && viewModel.isIncluding
-                    && viewModel.isPlaying
-                    && scrubWhileKeeping == "pauseOnScrub" {
-                    viewModel.togglePlayPause()
-                }
-            }
-        )
-        .tint(Color.ccTextPrimary.opacity(0.8))
-        .frame(height: 44)
     }
 
     // Playback Controls Row (portrait)
