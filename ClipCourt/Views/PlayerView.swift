@@ -528,12 +528,12 @@ struct PlayerView: View {
             exportViewModel.showExportSheet = true
         } label: {
             ViewThatFits(in: .horizontal) {
-                // Preferred: icon + text
+                // Preferred: icon + text (BUG-9970872406: use padding for centered content)
                 Label("Export", systemImage: "square.and.arrow.up")
                     .font(.headline.weight(.semibold))
                     .foregroundStyle(Color.ccTextPrimary)
                     .padding(.horizontal, 20)
-                    .frame(height: 44)
+                    .padding(.vertical, 12)
                     .background(Color.ccExport, in: Capsule())
 
                 // Fallback: icon only
