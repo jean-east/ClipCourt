@@ -117,19 +117,28 @@ final class PlayerViewModel {
             }
             .store(in: &cancellables)
 
-        // Handle end-of-video: reset isPlaying and close any open segment (BUG-001)
+        // Handle end-of-video: close any open segment (BUG-001)
         playerService.didPlayToEndPublisher
             .receive(on: DispatchQueue.main)
             .sink { [weak self] in
                 self?.handleVideoDidPlayToEnd()
             }
             .store(in: &cancellables)
+
+        // Derive isPlaying from AVPlayer's actual timeControlStatus (BUG-9970815942).
+        // This keeps the play/pause button in sync even when AVPlayer pauses
+        // for buffering, interruptions, or system reasons.
+        playerService.player.publisher(for: \.timeControlStatus)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] status in
+                self?.isPlaying = status == .playing
+            }
+            .store(in: &cancellables)
     }
 
     /// Called when AVPlayer reaches the end of the video.
-    /// Resets playback state and finalizes any open segment.
+    /// Finalizes any open segment. isPlaying is derived from timeControlStatus.
     private func handleVideoDidPlayToEnd() {
-        isPlaying = false
         isAtEnd = true
 
         // If user was including (toggle ON), close the open segment at video end
@@ -205,7 +214,7 @@ final class PlayerViewModel {
     /// Tears down AVPlayer, observers, and all playback resources.
     func closeProject() {
         playerService.cleanup()
-        isPlaying = false
+        // isPlaying is derived from player.timeControlStatus — cleanup pauses the player
         hasActiveProject = false
         isSelectingNewVideo = false
         project = nil
@@ -221,7 +230,7 @@ final class PlayerViewModel {
     /// User can come back via the back button if they don't pick a new video.
     func navigateToImport() {
         playerService.pause()
-        isPlaying = false
+        // isPlaying is derived from player.timeControlStatus (BUG-9970815942)
         isSelectingNewVideo = true
     }
 
@@ -239,7 +248,7 @@ final class PlayerViewModel {
             playerService.play()
             playerService.setRate(playbackSpeed.rawValue)
         }
-        isPlaying = !isPlaying
+        // isPlaying is now derived from player.timeControlStatus (BUG-9970815942)
     }
 
     func seek(to time: Double) {
@@ -268,7 +277,7 @@ final class PlayerViewModel {
             currentTime = 0
             playerService.play()
             playerService.setRate(playbackSpeed.rawValue)
-            isPlaying = true
+            // isPlaying is now derived from player.timeControlStatus (BUG-9970815942)
         }
     }
 
@@ -294,7 +303,7 @@ final class PlayerViewModel {
         playerService.setRate(holdSpeed)
         if !isPlaying {
             playerService.play()
-            isPlaying = true
+            // isPlaying is derived from player.timeControlStatus (BUG-9970815942)
         }
     }
 
