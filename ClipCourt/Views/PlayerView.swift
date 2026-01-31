@@ -521,18 +521,28 @@ struct PlayerView: View {
         }
     }
 
-    // Export pill button (shared)
+    // Export pill button (shared) — adaptive: icon+text when space allows, icon-only when tight
     private var exportPill: some View {
         Button {
             HapticManager.exportTap()
             exportViewModel.showExportSheet = true
         } label: {
-            Label("Export", systemImage: "square.and.arrow.up")
-                .font(.headline.weight(.semibold))
-                .foregroundStyle(Color.ccTextPrimary)
-                .padding(.horizontal, 20)
-                .frame(height: 44)
-                .background(Color.ccExport, in: Capsule())
+            ViewThatFits(in: .horizontal) {
+                // Preferred: icon + text
+                Label("Export", systemImage: "square.and.arrow.up")
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(Color.ccTextPrimary)
+                    .padding(.horizontal, 20)
+                    .frame(height: 44)
+                    .background(Color.ccExport, in: Capsule())
+
+                // Fallback: icon only
+                Image(systemName: "square.and.arrow.up")
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(Color.ccTextPrimary)
+                    .frame(width: 44, height: 44)
+                    .background(Color.ccExport, in: Capsule())
+            }
         }
         .disabled(!viewModel.hasIncludedSegments)
         .opacity(viewModel.hasIncludedSegments ? 1.0 : 0.4)
