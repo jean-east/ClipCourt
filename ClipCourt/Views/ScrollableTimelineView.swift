@@ -25,7 +25,7 @@ struct ScrollableTimelineView: View {
             )
         }
         .frame(height: Constants.UI.timelineHeight)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .clipped()
     }
 }
 

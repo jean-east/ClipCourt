@@ -80,7 +80,6 @@ struct PlayerView: View {
 
                 // Scrollable Timeline (Design.md: 48pt portrait)
                 ScrollableTimelineView()
-                    .padding(.horizontal, 16)
                     .padding(.top, 8)
 
                 // Playback Controls Row
@@ -155,7 +154,6 @@ struct PlayerView: View {
 
                 // Scrollable timeline
                 ScrollableTimelineView()
-                    .padding(.horizontal, 4)
 
                 // Playback controls (compact row)
                 HStack(spacing: 16) {
