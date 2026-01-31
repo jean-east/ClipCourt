@@ -73,6 +73,11 @@ struct PlayerView: View {
                     .padding(.horizontal, 16)
                     .frame(height: 36)
 
+                // Seek Bar (syncs with timeline via viewModel.currentTime)
+                scrubBar
+                    .padding(.horizontal, 16)
+                    .padding(.top, 4)
+
                 // Scrollable Timeline (Design.md: 48pt portrait)
                 ScrollableTimelineView()
                     .padding(.horizontal, 16)
@@ -143,6 +148,10 @@ struct PlayerView: View {
                         .monospacedDigit()
                         .foregroundStyle(Color.ccTextSecondary)
                 }
+
+                // Seek bar
+                scrubBar
+                    .padding(.horizontal, 4)
 
                 // Scrollable timeline
                 ScrollableTimelineView()
@@ -278,6 +287,19 @@ struct PlayerView: View {
                 .monospacedDigit()
                 .foregroundStyle(Color.ccTextSecondary)
         }
+    }
+
+    // Scrub Bar — syncs with ScrollableTimelineView through viewModel.currentTime
+    private var scrubBar: some View {
+        Slider(
+            value: Binding(
+                get: { viewModel.currentTime },
+                set: { viewModel.seek(to: $0) }
+            ),
+            in: 0...max(viewModel.duration, 0.01)
+        )
+        .tint(Color.ccTextPrimary.opacity(0.8))
+        .frame(height: 44)
     }
 
     // Playback Controls Row (portrait)
