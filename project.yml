@@ -31,10 +31,30 @@ targets:
         CURRENT_PROJECT_VERSION: "1"
         DEVELOPMENT_TEAM: ""
 
+  ClipCourtTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: ClipCourtTests
+    dependencies:
+      - target: ClipCourt
+    settings:
+      base:
+        INFOPLIST_FILE: ClipCourtTests/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.clipcourt.tests
+        SWIFT_VERSION: "5.9"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/ClipCourt.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ClipCourt"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+
 schemes:
   ClipCourt:
     build:
       targets:
         ClipCourt: all
+        ClipCourtTests: [test]
     run:
       config: Debug
+    test:
+      config: Debug
+      targets:
+        - ClipCourtTests

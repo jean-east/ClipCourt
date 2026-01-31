@@ -14,7 +14,9 @@
 		21B17B65D56C3FDB52064C08 /* Segment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 613AAE658CE6039DBBF3CCFE /* Segment.swift */; };
 		2A942D26BCB32A9D37DE6047 /* PersistenceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E126F2C8A98FCFDE58137D74 /* PersistenceService.swift */; };
 		2FE2359EAF0420270188485F /* Color+ClipCourt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8335F91B6EF5DC2B36CB1A2E /* Color+ClipCourt.swift */; };
+		30EB2567FFF7AFE02CC6211E /* SegmentManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CAE0DF0A6D7A455D6288846 /* SegmentManagerTests.swift */; };
 		53EEE7CDDEEFD8B0EE7EB5B6 /* ExportViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F28AB2A68CD1B2FEE7B4A938 /* ExportViewModel.swift */; };
+		559CE171A32CCE5A1A8D3024 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73ACF8C585C18518A1786AEE /* SettingsView.swift */; };
 		5F7CD942076533E2F0AA5CC5 /* ExportSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = C899FC8241C14AE5EA29BDD5 /* ExportSettings.swift */; };
 		622FDF252BB2E8D52A256D01 /* SegmentManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 350A10636FDA9252B14FEC1F /* SegmentManager.swift */; };
 		69C7622D06EE92BC710EDA08 /* VideoPlayerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E2112350F6C2D7F943CCE1D /* VideoPlayerService.swift */; };
@@ -24,11 +26,20 @@
 		9AD83D021C91B8E97F14BCB5 /* PlayerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E433303B659C64B8F1A97A6 /* PlayerViewModel.swift */; };
 		A188E2FD0402359CA66E08B0 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 705A80486ED5AECC8DFF2F55 /* Constants.swift */; };
 		C633238335AFC336FEAC97CC /* SegmentTimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08EB2BC4338E34B7DB6CDF31 /* SegmentTimelineView.swift */; };
+		CDCE4B6CC991146622A313E1 /* SlideToKeepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AED0CD8C6A7DD985FE0B0B81 /* SlideToKeepView.swift */; };
 		F642A03D470276B869275A01 /* HapticManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76885899DCD6E4AE352AD452 /* HapticManager.swift */; };
 		F71EFEE84391C682E4EBCEC8 /* ExportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 177A4AD6326485D74653A5AC /* ExportView.swift */; };
-		D3E4F5A6B7C8091D2E3F4A5B /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4F5A6B7C809102D3E4F5A6C /* SettingsView.swift */; };
-		A1B2C3D4E5F6071829304152 /* SlideToKeepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F60718293041A263 /* SlideToKeepView.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		45BC63F38AC1A90847B6E8A7 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6593468AA5FB7884DA71CA6 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 89A308E1ED0CFAC1F1D254AF;
+			remoteInfo = ClipCourt;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		08EB2BC4338E34B7DB6CDF31 /* SegmentTimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SegmentTimelineView.swift; sourceTree = "<group>"; };
@@ -38,29 +49,42 @@
 		2F61D4FB58965EF78CE60F8D /* ImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportView.swift; sourceTree = "<group>"; };
 		350A10636FDA9252B14FEC1F /* SegmentManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SegmentManager.swift; sourceTree = "<group>"; };
 		50ADD3FE0ECDD3A789915527 /* Project.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Project.swift; sourceTree = "<group>"; };
+		5CAE0DF0A6D7A455D6288846 /* SegmentManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SegmentManagerTests.swift; sourceTree = "<group>"; };
 		5E433303B659C64B8F1A97A6 /* PlayerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerViewModel.swift; sourceTree = "<group>"; };
-		B2C3D4E5F60718293041A263 /* SlideToKeepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlideToKeepView.swift; sourceTree = "<group>"; };
 		613AAE658CE6039DBBF3CCFE /* Segment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Segment.swift; sourceTree = "<group>"; };
 		705A80486ED5AECC8DFF2F55 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
+		73ACF8C585C18518A1786AEE /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		76885899DCD6E4AE352AD452 /* HapticManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticManager.swift; sourceTree = "<group>"; };
 		7DA75EBE3C7E8CD8DC2F53C7 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		8335F91B6EF5DC2B36CB1A2E /* Color+ClipCourt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+ClipCourt.swift"; sourceTree = "<group>"; };
 		AA92D2D7599C097B81D8BF17 /* ClipCourtApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipCourtApp.swift; sourceTree = "<group>"; };
+		AED0CD8C6A7DD985FE0B0B81 /* SlideToKeepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlideToKeepView.swift; sourceTree = "<group>"; };
 		B34408757C0D8813E86C0CEC /* TimeFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeFormatter.swift; sourceTree = "<group>"; };
 		C899FC8241C14AE5EA29BDD5 /* ExportSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportSettings.swift; sourceTree = "<group>"; };
 		CD7557C040AD994B797418C6 /* ExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportService.swift; sourceTree = "<group>"; };
 		D4BEBFE449B1847D9B632EA9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		DAAB7E0CBA7F39413E9179E5 /* ClipCourtTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = ClipCourtTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		DD3CDD19424F4CBBAF1F71A6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		E126F2C8A98FCFDE58137D74 /* PersistenceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceService.swift; sourceTree = "<group>"; };
 		E4B2139241FDBCF0895CEF7E /* ClipCourt.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = ClipCourt.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F28AB2A68CD1B2FEE7B4A938 /* ExportViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportViewModel.swift; sourceTree = "<group>"; };
-		E4F5A6B7C809102D3E4F5A6C /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
+		054EE6A16DD3F0E2ED3F1D17 /* ClipCourtTests */ = {
+			isa = PBXGroup;
+			children = (
+				DD3CDD19424F4CBBAF1F71A6 /* Info.plist */,
+				5CAE0DF0A6D7A455D6288846 /* SegmentManagerTests.swift */,
+			);
+			path = ClipCourtTests;
+			sourceTree = "<group>";
+		};
 		5812763A0A55C04D0F406FC3 /* Products */ = {
 			isa = PBXGroup;
 			children = (
 				E4B2139241FDBCF0895CEF7E /* ClipCourt.app */,
+				DAAB7E0CBA7F39413E9179E5 /* ClipCourtTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -115,6 +139,7 @@
 			isa = PBXGroup;
 			children = (
 				B463894276E49B1F870FE46D /* ClipCourt */,
+				054EE6A16DD3F0E2ED3F1D17 /* ClipCourtTests */,
 				5812763A0A55C04D0F406FC3 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -136,8 +161,8 @@
 				2F61D4FB58965EF78CE60F8D /* ImportView.swift */,
 				11FCE306B888208BF281C836 /* PlayerView.swift */,
 				08EB2BC4338E34B7DB6CDF31 /* SegmentTimelineView.swift */,
-				E4F5A6B7C809102D3E4F5A6C /* SettingsView.swift */,
-				B2C3D4E5F60718293041A263 /* SlideToKeepView.swift */,
+				73ACF8C585C18518A1786AEE /* SettingsView.swift */,
+				AED0CD8C6A7DD985FE0B0B81 /* SlideToKeepView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -145,6 +170,24 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		7077510C714965BD88697DB1 /* ClipCourtTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B9A0A280851CEBF68989818B /* Build configuration list for PBXNativeTarget "ClipCourtTests" */;
+			buildPhases = (
+				61A508DD08EB21CBBB2EA189 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				7E6066289B87BDF9C2DAB183 /* PBXTargetDependency */,
+			);
+			name = ClipCourtTests;
+			packageProductDependencies = (
+			);
+			productName = ClipCourtTests;
+			productReference = DAAB7E0CBA7F39413E9179E5 /* ClipCourtTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		89A308E1ED0CFAC1F1D254AF /* ClipCourt */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 78BCFC1EEEFB1B68F66D411B /* Build configuration list for PBXNativeTarget "ClipCourt" */;
@@ -192,6 +235,7 @@
 			projectRoot = "";
 			targets = (
 				89A308E1ED0CFAC1F1D254AF /* ClipCourt */,
+				7077510C714965BD88697DB1 /* ClipCourtTests */,
 			);
 		};
 /* End PBXProject section */
@@ -208,6 +252,14 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		61A508DD08EB21CBBB2EA189 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				30EB2567FFF7AFE02CC6211E /* SegmentManagerTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		8B5B9642D7318FFD3A71F7ED /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -228,14 +280,22 @@
 				21B17B65D56C3FDB52064C08 /* Segment.swift in Sources */,
 				622FDF252BB2E8D52A256D01 /* SegmentManager.swift in Sources */,
 				C633238335AFC336FEAC97CC /* SegmentTimelineView.swift in Sources */,
-				D3E4F5A6B7C8091D2E3F4A5B /* SettingsView.swift in Sources */,
-				A1B2C3D4E5F6071829304152 /* SlideToKeepView.swift in Sources */,
+				559CE171A32CCE5A1A8D3024 /* SettingsView.swift in Sources */,
+				CDCE4B6CC991146622A313E1 /* SlideToKeepView.swift in Sources */,
 				15D2361C43AFD42561505867 /* TimeFormatter.swift in Sources */,
 				69C7622D06EE92BC710EDA08 /* VideoPlayerService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		7E6066289B87BDF9C2DAB183 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 89A308E1ED0CFAC1F1D254AF /* ClipCourt */;
+			targetProxy = 45BC63F38AC1A90847B6E8A7 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		1879E9F355C31F4C2573D7A2 /* Release */ = {
@@ -401,6 +461,42 @@
 			};
 			name = Debug;
 		};
+		A393E5BB0CBB8004B797FB91 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				INFOPLIST_FILE = ClipCourtTests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.clipcourt.tests;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ClipCourt.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ClipCourt";
+			};
+			name = Release;
+		};
+		AE34E787AE448564D5960DAB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				INFOPLIST_FILE = ClipCourtTests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.clipcourt.tests;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ClipCourt.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ClipCourt";
+			};
+			name = Debug;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -418,6 +514,15 @@
 			buildConfigurations = (
 				8B12B55DAE8828652B813290 /* Debug */,
 				1879E9F355C31F4C2573D7A2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		B9A0A280851CEBF68989818B /* Build configuration list for PBXNativeTarget "ClipCourtTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AE34E787AE448564D5960DAB /* Debug */,
+				A393E5BB0CBB8004B797FB91 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
