@@ -3,6 +3,9 @@
 //
 // LumaFusion-style scrollable timeline with fixed centered playhead.
 // UIScrollView-based for precise contentOffset control during playback.
+//
+// Polished: UIHostingController (App Store safe), UIPinchGestureRecognizer,
+// scroll-to-seek, auto-follow, UILongPressGestureRecognizer for segment toggle.
 
 import SwiftUI
 
@@ -45,9 +48,6 @@ private struct TimelineContainer: View {
     /// Whether the user is actively dragging (disables auto-follow)
     @State private var isUserDragging: Bool = false
 
-    /// Pinch gesture base scale
-    @State private var pinchBaseScale: CGFloat = 1
-
     private var totalDuration: CGFloat { max(CGFloat(viewModel.duration), 0.01) }
     private var edgePadding: CGFloat { containerSize.width / 2 }
     private var contentWidth: CGFloat { totalDuration * pointsPerSecond + containerSize.width }
@@ -60,15 +60,12 @@ private struct TimelineContainer: View {
                 containerWidth: containerSize.width,
                 scrollOffset: $scrollOffset,
                 isUserDragging: $isUserDragging,
+                pointsPerSecond: $pointsPerSecond,
+                minPointsPerSecond: minPointsPerSecond,
+                maxPointsPerSecond: maxPointsPerSecond,
                 onScrollEnded: { handleScrollEnded() },
+                onLongPress: { time in handleLongPress(at: time) },
                 content: {
-                    // ENGINEER A: Implement Canvas segment rendering
-                    // - Draw in a coordinate space where x=0 is the left edge padding
-                    // - Segment x position = edgePadding + segment.startTime * pointsPerSecond
-                    // - Segment width = segment.duration * pointsPerSecond
-                    // - Green (ccInclude) for included, skip excluded
-                    // - During active keep: draw green from keepStart to currentTime
-                    // - Only draw segments visible in the current viewport
                     SegmentCanvasView(
                         segments: viewModel.segments,
                         isIncluding: viewModel.isIncluding,
@@ -82,10 +79,6 @@ private struct TimelineContainer: View {
                     )
                     .frame(width: contentWidth, height: containerSize.height - 18)
 
-                    // ENGINEER B: Implement time ruler
-                    // - Positioned at bottom of timeline
-                    // - Adaptive ticks based on pointsPerSecond
-                    // - Labels in ccTextTertiary, monospaced 9pt
                     TimeRulerView(
                         totalDuration: totalDuration,
                         pointsPerSecond: pointsPerSecond,
@@ -102,6 +95,7 @@ private struct TimelineContainer: View {
             PlayheadView()
                 .frame(width: 8, height: containerSize.height)
                 .position(x: containerSize.width / 2, y: containerSize.height / 2)
+                .allowsHitTesting(false)
 
         }
         .background(Color.ccSurface)
@@ -112,18 +106,13 @@ private struct TimelineContainer: View {
                 autoFollowPlayhead(time: CGFloat(newTime))
             }
         }
-        .gesture(pinchGesture)
-        // Long-press for segment deletion
-        .onLongPressGesture {
-            handleLongPress()
-        }
     }
 
     // MARK: - Scale computation
 
     private func computeInitialScale() {
         guard containerSize.width > 0, totalDuration > 0.01 else { return }
-        // Min: entire video fits (minus edge padding)
+        // Min: entire video fits
         minPointsPerSecond = containerSize.width / totalDuration
         // Max: ~5 seconds fills the screen
         maxPointsPerSecond = containerSize.width / 5.0
@@ -146,35 +135,12 @@ private struct TimelineContainer: View {
         viewModel.seek(to: Double(clampedTime))
     }
 
-    // MARK: - Pinch-to-zoom
+    // MARK: - Long-press → toggle segment at press location
 
-    private var pinchGesture: some Gesture {
-        MagnifyGesture()
-            .onChanged { value in
-                let newScale = pinchBaseScale * value.magnification
-                pointsPerSecond = min(max(newScale, minPointsPerSecond), maxPointsPerSecond)
-                // Keep the same time under the playhead
-                let timeAtPlayhead = scrollOffset / (pinchBaseScale * (value.magnification - 1 + 1))
-                scrollOffset = timeAtPlayhead * pointsPerSecond
-            }
-            .onEnded { _ in
-                pinchBaseScale = pointsPerSecond
-                // Snap to overview if close
-                if pointsPerSecond < minPointsPerSecond * 1.15 {
-                    withAnimation(.easeOut(duration: 0.2)) {
-                        pointsPerSecond = minPointsPerSecond
-                    }
-                }
-            }
-    }
-
-    // MARK: - Long-press → delete segment
-
-    private func handleLongPress() {
-        let timeAtPlayhead = scrollOffset / pointsPerSecond
-        // Find the segment at the playhead position
+    private func handleLongPress(at time: CGFloat) {
+        let clampedTime = Double(min(max(time, 0), totalDuration))
         if let segment = viewModel.segments.first(where: { seg in
-            seg.contains(time: Double(timeAtPlayhead)) && seg.isIncluded
+            seg.contains(time: clampedTime) && seg.isIncluded
         }) {
             viewModel.toggleSegment(segment)
         }
@@ -201,7 +167,7 @@ private struct PlayheadView: View {
 
 // Reuses Triangle shape from SegmentTimelineView.swift
 
-// MARK: - Segment Canvas (ENGINEER A fills this in)
+// MARK: - Segment Canvas
 
 /// Canvas-based segment renderer for performance.
 /// Draws green rectangles for included segments, skips excluded.
@@ -249,7 +215,7 @@ struct SegmentCanvasView: View {
     }
 }
 
-// MARK: - Time Ruler (ENGINEER B fills this in)
+// MARK: - Time Ruler
 
 /// Adaptive time ruler at the bottom of the timeline.
 struct TimeRulerView: View {
@@ -309,16 +275,21 @@ struct TimeRulerView: View {
     }
 }
 
-// MARK: - UIScrollView Wrapper (ENGINEER C fills this in)
+// MARK: - UIScrollView Wrapper
 
 /// UIViewRepresentable wrapping UIScrollView for precise contentOffset control.
+/// Uses UIHostingController (App Store safe) instead of private _UIHostingView.
 struct TimelineScrollView<Content: View>: UIViewRepresentable {
 
     let contentWidth: CGFloat
     let containerWidth: CGFloat
     @Binding var scrollOffset: CGFloat
     @Binding var isUserDragging: Bool
+    @Binding var pointsPerSecond: CGFloat
+    let minPointsPerSecond: CGFloat
+    let maxPointsPerSecond: CGFloat
     let onScrollEnded: () -> Void
+    let onLongPress: (_ time: CGFloat) -> Void
     @ViewBuilder let content: () -> Content
 
     func makeCoordinator() -> Coordinator {
@@ -334,45 +305,84 @@ struct TimelineScrollView<Content: View>: UIViewRepresentable {
         scrollView.delegate = context.coordinator
         scrollView.decelerationRate = .normal
 
-        // Host the SwiftUI content
-        let hostView = context.coordinator.hostView
+        // Host the SwiftUI content via UIHostingController (App Store safe)
+        let hostView = context.coordinator.hostingController.view!
+        hostView.backgroundColor = .clear
         scrollView.addSubview(hostView)
+
+        // Pinch-to-zoom gesture (replaces SwiftUI MagnifyGesture to avoid
+        // conflicts with UIScrollView scrolling)
+        let pinch = UIPinchGestureRecognizer(
+            target: context.coordinator,
+            action: #selector(Coordinator.handlePinch(_:))
+        )
+        scrollView.addGestureRecognizer(pinch)
+
+        // Long-press gesture for segment toggling
+        let longPress = UILongPressGestureRecognizer(
+            target: context.coordinator,
+            action: #selector(Coordinator.handleLongPress(_:))
+        )
+        longPress.minimumPressDuration = 0.5
+        scrollView.addGestureRecognizer(longPress)
+
+        context.coordinator.scrollView = scrollView
 
         return scrollView
     }
 
     func updateUIView(_ scrollView: UIScrollView, context: Context) {
+        // Keep coordinator's parent reference current
+        context.coordinator.parent = self
+
         // Update content size
         scrollView.contentSize = CGSize(width: contentWidth, height: scrollView.bounds.height)
 
         // Update hosted SwiftUI content
-        let hostView = context.coordinator.hostView
-        hostView.rootView = AnyView(
+        let hostingController = context.coordinator.hostingController
+        hostingController.rootView = AnyView(
             VStack(spacing: 0) {
                 content()
             }
         )
-        hostView.frame = CGRect(x: 0, y: 0, width: contentWidth, height: scrollView.bounds.height)
+        hostingController.view.frame = CGRect(
+            x: 0, y: 0,
+            width: contentWidth,
+            height: scrollView.bounds.height
+        )
 
-        // Sync scroll position from SwiftUI → UIKit (during playback)
+        // Sync scroll position from SwiftUI → UIKit (during playback / pinch)
+        // Only when user is NOT actively dragging
         if !context.coordinator.isDragging {
             let targetX = scrollOffset
-            if abs(scrollView.contentOffset.x - targetX) > 1 {
+            if abs(scrollView.contentOffset.x - targetX) > 0.5 {
                 scrollView.contentOffset.x = targetX
             }
         }
     }
 
+    // MARK: - Coordinator
+
     class Coordinator: NSObject, UIScrollViewDelegate {
-        let parent: TimelineScrollView
+        var parent: TimelineScrollView
         var isDragging = false
-        let hostView: _UIHostingView<AnyView>
+        let hostingController: UIHostingController<AnyView>
+        weak var scrollView: UIScrollView?
+
+        /// Stores the pointsPerSecond at pinch start for anchored zoom
+        private var pinchBasePPS: CGFloat = 1
+        /// Stores the scroll offset at pinch start
+        private var pinchBaseOffset: CGFloat = 0
 
         init(parent: TimelineScrollView) {
             self.parent = parent
-            self.hostView = _UIHostingView(rootView: AnyView(EmptyView()))
+            self.hostingController = UIHostingController(rootView: AnyView(EmptyView()))
             super.init()
+            // Transparent background so timeline shows through
+            self.hostingController.view.backgroundColor = .clear
         }
+
+        // MARK: - UIScrollViewDelegate
 
         func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
             isDragging = true
@@ -404,6 +414,88 @@ struct TimelineScrollView<Content: View>: UIViewRepresentable {
             DispatchQueue.main.async {
                 self.parent.isUserDragging = false
                 self.parent.onScrollEnded()
+            }
+        }
+
+        // MARK: - Pinch-to-Zoom (anchored at playhead)
+
+        @objc func handlePinch(_ gesture: UIPinchGestureRecognizer) {
+            guard let scrollView = scrollView else { return }
+
+            switch gesture.state {
+            case .began:
+                pinchBasePPS = parent.pointsPerSecond
+                pinchBaseOffset = scrollView.contentOffset.x
+
+            case .changed:
+                let newPPS = min(
+                    max(pinchBasePPS * gesture.scale, parent.minPointsPerSecond),
+                    parent.maxPointsPerSecond
+                )
+
+                // Anchor zoom at playhead (center of screen).
+                // Time at playhead = scrollOffset / oldPPS
+                // New offset = timeAtPlayhead * newPPS
+                let timeAtPlayhead = pinchBaseOffset / pinchBasePPS
+                let newOffset = timeAtPlayhead * newPPS
+
+                // Compute new content width for immediate UIKit update
+                // (avoids contentOffset clamping before SwiftUI layout pass)
+                let totalDuration = (parent.contentWidth - parent.containerWidth)
+                    / parent.pointsPerSecond
+                let newContentWidth = totalDuration * newPPS + parent.containerWidth
+
+                // Update UIKit immediately for responsive feel
+                scrollView.contentSize.width = newContentWidth
+                scrollView.contentOffset.x = newOffset
+
+                // Update bindings (triggers SwiftUI state change → body recompute)
+                DispatchQueue.main.async {
+                    self.parent.pointsPerSecond = newPPS
+                    self.parent.scrollOffset = newOffset
+                }
+
+            case .ended, .cancelled:
+                // Snap to overview if close to minimum zoom
+                let currentPPS = parent.pointsPerSecond
+                let minPPS = parent.minPointsPerSecond
+                if currentPPS < minPPS * 1.15 {
+                    let totalDuration = (parent.contentWidth - parent.containerWidth)
+                        / currentPPS
+                    let timeAtPlayhead = parent.scrollOffset / currentPPS
+                    let snappedOffset = timeAtPlayhead * minPPS
+                    let snappedWidth = totalDuration * minPPS + parent.containerWidth
+
+                    scrollView.contentSize.width = snappedWidth
+
+                    DispatchQueue.main.async {
+                        self.parent.pointsPerSecond = minPPS
+                        self.parent.scrollOffset = snappedOffset
+                    }
+
+                    UIView.animate(withDuration: 0.2, delay: 0, options: .curveEaseOut) {
+                        scrollView.contentOffset.x = snappedOffset
+                    }
+                }
+
+            default:
+                break
+            }
+        }
+
+        // MARK: - Long-Press → Toggle Segment
+
+        @objc func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
+            guard gesture.state == .began, let scrollView = scrollView else { return }
+
+            // gesture.location(in: scrollView) returns content-space coordinates
+            // (UIScrollView's coordinate system is its content space)
+            let contentX = gesture.location(in: scrollView).x
+            let edgePadding = parent.containerWidth / 2
+            let time = (contentX - edgePadding) / parent.pointsPerSecond
+
+            DispatchQueue.main.async {
+                self.parent.onLongPress(time)
             }
         }
     }
