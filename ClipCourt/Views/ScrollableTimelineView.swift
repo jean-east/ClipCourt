@@ -63,6 +63,7 @@ private struct TimelineContainer: View {
                 pointsPerSecond: $pointsPerSecond,
                 minPointsPerSecond: minPointsPerSecond,
                 maxPointsPerSecond: maxPointsPerSecond,
+                onScrollChanged: { offset in handleScrollChanged(offset: offset) },
                 onScrollEnded: { handleScrollEnded() },
                 onLongPress: { time in handleLongPress(at: time) },
                 content: {
@@ -125,6 +126,14 @@ private struct TimelineContainer: View {
     private func autoFollowPlayhead(time: CGFloat) {
         let targetOffset = time * pointsPerSecond
         scrollOffset = targetOffset
+    }
+
+    // MARK: - Continuous scroll → update currentTime in real-time
+
+    private func handleScrollChanged(offset: CGFloat) {
+        let time = offset / pointsPerSecond
+        let clampedTime = Double(min(max(time, 0), totalDuration))
+        viewModel.currentTime = clampedTime
     }
 
     // MARK: - Scroll ended → seek
@@ -304,6 +313,7 @@ struct TimelineScrollView<Content: View>: UIViewRepresentable {
     @Binding var pointsPerSecond: CGFloat
     let minPointsPerSecond: CGFloat
     let maxPointsPerSecond: CGFloat
+    let onScrollChanged: (_ offset: CGFloat) -> Void
     let onScrollEnded: () -> Void
     let onLongPress: (_ time: CGFloat) -> Void
     @ViewBuilder let content: () -> Content
@@ -409,8 +419,10 @@ struct TimelineScrollView<Content: View>: UIViewRepresentable {
 
         func scrollViewDidScroll(_ scrollView: UIScrollView) {
             if isDragging {
+                let offset = scrollView.contentOffset.x
                 DispatchQueue.main.async {
-                    self.parent.scrollOffset = scrollView.contentOffset.x
+                    self.parent.scrollOffset = offset
+                    self.parent.onScrollChanged(offset)
                 }
             }
         }
