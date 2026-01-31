@@ -119,6 +119,15 @@ private struct TimelineContainer: View {
         maxPointsPerSecond = containerSize.width / 5.0
         // Start at overview
         pointsPerSecond = minPointsPerSecond
+
+        // Position timeline at restored playback position (session resume).
+        // Defer so the UIScrollView has its correct bounds before we set contentOffset.
+        let restoredTime = CGFloat(viewModel.currentTime)
+        if restoredTime > 0 {
+            DispatchQueue.main.async {
+                scrollOffset = restoredTime * pointsPerSecond
+            }
+        }
     }
 
     // MARK: - Auto-follow playhead during playback

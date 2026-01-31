@@ -155,38 +155,21 @@ struct PlayerView: View {
                 // Scrollable timeline
                 ScrollableTimelineView()
 
-                // Playback controls (compact row)
-                HStack(spacing: 16) {
-                    // Skip Back 15s
-                    Button {
-                        HapticManager.skip()
-                        viewModel.seek(to: max(0, viewModel.currentTime - 15))
-                    } label: {
-                        Image(systemName: "gobackward.15")
-                            .font(.body)
-                            .foregroundStyle(Color.ccTextSecondary)
-                            .frame(width: 40, height: 40)
+                // Playback controls
+                Button {
+                    if viewModel.isAtEnd {
+                        HapticManager.playPause()
+                        viewModel.restart()
+                    } else {
+                        HapticManager.playPause()
+                        viewModel.togglePlayPause()
                     }
-
-                    // Play/Pause/Restart
-                    Button {
-                        if viewModel.isAtEnd {
-                            HapticManager.playPause()
-                            viewModel.restart()
-                        } else {
-                            HapticManager.playPause()
-                            viewModel.togglePlayPause()
-                        }
-                    } label: {
-                        Image(systemName: viewModel.isAtEnd ? "arrow.counterclockwise" : (viewModel.isPlaying ? "pause.fill" : "play.fill"))
-                            .font(.title3)
-                            .foregroundStyle(Color.ccTextPrimary)
-                            .contentTransition(.symbolEffect(.replace.downUp))
-                            .frame(width: 44, height: 44)
-                    }
-
-                    // Skip Forward 15s / Fast Forward
-                    skipForwardButton(iconSize: .body, frameSize: 40)
+                } label: {
+                    Image(systemName: viewModel.isAtEnd ? "arrow.counterclockwise" : (viewModel.isPlaying ? "pause.fill" : "play.fill"))
+                        .font(.title3)
+                        .foregroundStyle(Color.ccTextPrimary)
+                        .contentTransition(.symbolEffect(.replace.downUp))
+                        .frame(width: 44, height: 44)
                 }
 
                 // Speed selector
@@ -303,16 +286,6 @@ struct PlayerView: View {
     // Playback Controls Row (portrait)
     private var playbackControlsRow: some View {
         HStack(spacing: 0) {
-            Button {
-                HapticManager.skip()
-                viewModel.seek(to: max(0, viewModel.currentTime - 15))
-            } label: {
-                Image(systemName: "gobackward.15")
-                    .font(.title3)
-                    .foregroundStyle(Color.ccTextSecondary)
-                    .frame(width: 44, height: 44)
-            }
-
             Spacer()
 
             Button {
@@ -333,35 +306,8 @@ struct PlayerView: View {
 
             Spacer()
 
-            skipForwardButton(iconSize: .title3, frameSize: 44)
-
-            Spacer()
-
             speedSelector
         }
-    }
-
-    // Skip Forward button (shared, parameterized)
-    private func skipForwardButton(iconSize: Font, frameSize: CGFloat) -> some View {
-        Image(systemName: viewModel.isFastForwarding ? "forward.fill" : "goforward.15")
-            .font(iconSize)
-            .foregroundStyle(viewModel.isFastForwarding ? Color.ccSpeed : Color.ccTextSecondary)
-            .frame(width: frameSize, height: frameSize)
-            .contentShape(Rectangle())
-            .onTapGesture {
-                HapticManager.skip()
-                viewModel.seek(to: min(viewModel.duration, viewModel.currentTime + 15))
-            }
-            .onLongPressGesture(minimumDuration: 0.3) {
-            } onPressingChanged: { pressing in
-                if pressing {
-                    HapticManager.fastForwardEngage()
-                    viewModel.beginFastForward()
-                } else if viewModel.isFastForwarding {
-                    HapticManager.fastForwardRelease()
-                    viewModel.endFastForward()
-                }
-            }
     }
 
     // Speed Selector (portrait)

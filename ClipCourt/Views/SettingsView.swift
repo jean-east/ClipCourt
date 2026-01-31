@@ -23,22 +23,9 @@ struct SettingsView: View {
             List {
                 // MARK: How to Use ClipCourt
                 Section {
-                    tipRow(icon: "video.badge.plus",
-                           text: "Tap \"Choose Video\" to pick a game from your camera roll")
-                    tipRow(icon: "hand.tap",
-                           text: "Tap \"Tap to Keep\" while watching — tap again to stop")
-                    tipRow(icon: "checkmark.circle.fill",
-                           text: "Green = highlights you're keeping · Dark = parts that get skipped")
-                    tipRow(icon: "arrow.up.left.and.arrow.down.right",
-                           text: "Scroll the timeline to scrub · Pinch to zoom in for precision")
-                    tipRow(icon: "slider.horizontal.3",
-                           text: "Drag the seek bar to jump to any point in the video")
-                    tipRow(icon: "hand.tap.fill",
-                           text: "Long-press a green clip on the timeline to remove it")
-                    tipRow(icon: "forward.fill",
-                           text: "Long-press the video to fast-forward at your chosen speed")
-                    tipRow(icon: "square.and.arrow.up",
-                           text: "Tap Export to save your highlight reel to Camera Roll 🏐")
+                    ForEach(Array(HowToContent.tips.enumerated()), id: \.offset) { _, tip in
+                        tipRow(icon: tip.icon, text: tip.text)
+                    }
                 } header: {
                     Text("How to Use ClipCourt")
                 }
