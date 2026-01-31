@@ -98,7 +98,7 @@ private struct TimelineContainer: View {
                 .allowsHitTesting(false)
 
         }
-        .background(Color.ccSurface)
+        .background(Color.ccBackground)
         .onAppear { computeInitialScale() }
         .onChange(of: viewModel.duration) { _, _ in computeInitialScale() }
         .onChange(of: viewModel.currentTime) { _, newTime in
@@ -189,15 +189,10 @@ struct SegmentCanvasView: View {
             let visibleEnd = visibleStart + viewportWidth
             let videoEndX = size.width - edgePadding
 
-            // -- Out-of-bounds zones: darker background to indicate "no video here" --
-            // Before video start (0 → edgePadding)
-            let preRect = CGRect(x: 0, y: 0, width: edgePadding, height: size.height)
-            context.fill(Path(preRect), with: .color(Color.ccBackground))
-
-            // After video end (videoEndX → end)
-            let postRect = CGRect(x: videoEndX, y: 0,
-                                  width: size.width - videoEndX, height: size.height)
-            context.fill(Path(postRect), with: .color(Color.ccBackground))
+            // -- Video region: lighter background --
+            let videoRect = CGRect(x: edgePadding, y: 0,
+                                   width: videoEndX - edgePadding, height: size.height)
+            context.fill(Path(videoRect), with: .color(Color.ccSurface))
 
             // -- Boundary separator lines (subtle 1pt vertical markers) --
             let startLine = CGRect(x: edgePadding - 0.5, y: 0,
