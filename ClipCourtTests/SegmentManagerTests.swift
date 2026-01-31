@@ -671,4 +671,412 @@ final class SegmentManagerTests: XCTestCase {
             XCTAssertTrue(seg.isValid, "Segment \(seg.startTime)-\(seg.endTime) should be valid")
         }
     }
+
+    // =========================================================================
+    // MARK: - New Tests: ScrollableTimelineView Overhaul (2025-01)
+    //
+    // The old SegmentTimelineView was replaced with ScrollableTimelineView
+    // (LumaFusion-style fixed playhead, scrollable content). The old Slider
+    // scrub bar was removed and then re-added above the timeline.
+    //
+    // These tests verify that the SegmentManager, PlayerViewModel, and
+    // segment model still behave correctly with the new timeline.
+    // =========================================================================
+
+    // MARK: - Seek + Keep: Forward Seek Past Existing Segments
+
+    func testSeekForwardPastSegmentsAndKeep() {
+        // First keep: 5..15
+        begin(at: 5)
+        stop(at: 15)
+
+        // User scrolls the timeline forward (seek to 40) and keeps 40..50
+        begin(at: 40)
+        stop(at: 50)
+
+        let included = sut.segments.filter(\.isIncluded)
+        XCTAssertEqual(included.count, 2, "Should have two disjoint included segments")
+        XCTAssertEqual(included[0].startTime, 5, accuracy: 0.001)
+        XCTAssertEqual(included[0].endTime, 15, accuracy: 0.001)
+        XCTAssertEqual(included[1].startTime, 40, accuracy: 0.001)
+        XCTAssertEqual(included[1].endTime, 50, accuracy: 0.001)
+        XCTAssertEqual(sut.totalIncludedDuration, 20, accuracy: 0.001)
+    }
+
+    // MARK: - Seek + Keep: Seek Into Gap Between Segments
+
+    func testSeekIntoGapAndKeep() {
+        // Create two disjoint keeps: 5..10 and 30..35
+        begin(at: 5)
+        stop(at: 10)
+        begin(at: 30)
+        stop(at: 35)
+
+        // User seeks into the gap (15..25) and keeps
+        begin(at: 15)
+        stop(at: 25)
+
+        let included = sut.segments.filter(\.isIncluded)
+        XCTAssertEqual(included.count, 3, "Should have three disjoint included segments")
+        XCTAssertEqual(included[0].startTime, 5, accuracy: 0.001)
+        XCTAssertEqual(included[0].endTime, 10, accuracy: 0.001)
+        XCTAssertEqual(included[1].startTime, 15, accuracy: 0.001)
+        XCTAssertEqual(included[1].endTime, 25, accuracy: 0.001)
+        XCTAssertEqual(included[2].startTime, 30, accuracy: 0.001)
+        XCTAssertEqual(included[2].endTime, 35, accuracy: 0.001)
+    }
+
+    // MARK: - Re-Keep: Start Inside Included, Extend Into Next Included (Merge)
+
+    func testReKeepBridgingTwoIncludedSegments() {
+        // Two disjoint keeps: 5..15 and 25..35
+        begin(at: 5)
+        stop(at: 15)
+        begin(at: 25)
+        stop(at: 35)
+
+        // Re-keep spanning from inside the first to inside the second: 10..30
+        begin(at: 10)
+        stop(at: 30)
+
+        // Should merge everything into one included segment: 5..30
+        let included = sut.segments.filter(\.isIncluded)
+        XCTAssertEqual(included.count, 1, "Bridging re-keep should merge into one segment")
+        XCTAssertEqual(included[0].startTime, 5, accuracy: 0.001)
+        XCTAssertEqual(included[0].endTime, 30, accuracy: 0.001)
+    }
+
+    // MARK: - Re-Keep: Multiple Sequential Re-Keeps (Regression: BUG-016)
+
+    func testMultipleReKeeps_stressTest() {
+        // First keep: 10..20
+        begin(at: 10)
+        stop(at: 20)
+
+        // Re-keep: extends 15..30
+        begin(at: 15)
+        stop(at: 30)
+
+        // Re-keep again: extends 25..40
+        begin(at: 25)
+        stop(at: 40)
+
+        let included = sut.segments.filter(\.isIncluded)
+        XCTAssertEqual(included.count, 1, "Sequential re-keeps should merge into one segment")
+        XCTAssertEqual(included[0].startTime, 10, accuracy: 0.001)
+        XCTAssertEqual(included[0].endTime, 40, accuracy: 0.001)
+        XCTAssertEqual(sut.totalIncludedDuration, 30, accuracy: 0.001)
+    }
+
+    // MARK: - Re-Keep: Shorter Keep Inside Existing (Trims End)
+
+    func testReKeepShorterInsideExisting_trimsEnd() {
+        // First keep: 10..40
+        begin(at: 10)
+        stop(at: 40)
+
+        // Re-keep starting at 20, stopping at 25 (shorter)
+        begin(at: 20)
+        stop(at: 25)
+
+        // BUG-016: re-keeping inside an existing segment trims to keepStart..stopTime
+        // The effective start should be preserved from the original (10)
+        let included = sut.segments.filter(\.isIncluded)
+        XCTAssertEqual(included.count, 1)
+        XCTAssertEqual(included[0].startTime, 10, accuracy: 0.001)
+        XCTAssertEqual(included[0].endTime, 25, accuracy: 0.001)
+    }
+
+    // MARK: - Seek + Keep: Seek To Very Start After Previous Keeps
+
+    func testSeekToStartAndKeep_afterExistingKeeps() {
+        // Existing keep: 20..30
+        begin(at: 20)
+        stop(at: 30)
+
+        // User seeks to start and keeps 0..5
+        begin(at: 0)
+        stop(at: 5)
+
+        let included = sut.segments.filter(\.isIncluded)
+        XCTAssertEqual(included.count, 2)
+        XCTAssertEqual(included[0].startTime, 0, accuracy: 0.001)
+        XCTAssertEqual(included[0].endTime, 5, accuracy: 0.001)
+        XCTAssertEqual(included[1].startTime, 20, accuracy: 0.001)
+        XCTAssertEqual(included[1].endTime, 30, accuracy: 0.001)
+    }
+
+    // MARK: - Seek + Keep: Seek To Very End
+
+    func testSeekNearEndAndKeep() {
+        // Existing keep: 5..15
+        begin(at: 5)
+        stop(at: 15)
+
+        // User seeks near end and keeps 55..60
+        begin(at: 55)
+        stop(at: 60)
+
+        let included = sut.segments.filter(\.isIncluded)
+        XCTAssertEqual(included.count, 2)
+        XCTAssertEqual(included[1].startTime, 55, accuracy: 0.001)
+        XCTAssertEqual(included[1].endTime, 60, accuracy: 0.001)
+    }
+
+    // MARK: - Scroll-to-Seek Simulation (SegmentManager Integrity After Seek)
+
+    /// Simulates the ScrollableTimelineView's scroll-to-seek behavior:
+    /// user scrolls the timeline (which calls viewModel.seek(to:)),
+    /// then toggles keep. The SegmentManager should handle arbitrary
+    /// seek positions gracefully.
+    func testScrollToSeek_thenKeep_arbitraryPositions() {
+        // Simulate: user keeps 10..20, then scrolls to 45 and keeps 45..50
+        begin(at: 10)
+        stop(at: 20)
+
+        // "Scroll to 45" — in the real app, handleScrollEnded() calls viewModel.seek(to: 45)
+        // Then user presses Keep at 45
+        begin(at: 45)
+        stop(at: 50)
+
+        let included = sut.segments.filter(\.isIncluded)
+        XCTAssertEqual(included.count, 2)
+
+        // Verify invariants still hold after scroll-seek + keep
+        for i in 1..<sut.segments.count {
+            XCTAssertLessThanOrEqual(
+                sut.segments[i - 1].endTime,
+                sut.segments[i].startTime + 0.001,
+                "Segments should not overlap after scroll-seek"
+            )
+            XCTAssertLessThanOrEqual(
+                sut.segments[i - 1].startTime,
+                sut.segments[i].startTime,
+                "Segments should be sorted after scroll-seek"
+            )
+        }
+    }
+
+    // MARK: - Adjacent Keeps Merge Correctly
+
+    func testAdjacentKeeps_mergeIntoOne() {
+        // Keep 10..20, then immediately keep 20..30
+        begin(at: 10)
+        stop(at: 20)
+        begin(at: 20)
+        stop(at: 30)
+
+        // Adjacent included segments should merge
+        let included = sut.segments.filter(\.isIncluded)
+        XCTAssertEqual(included.count, 1, "Adjacent keeps should merge")
+        XCTAssertEqual(included[0].startTime, 10, accuracy: 0.001)
+        XCTAssertEqual(included[0].endTime, 30, accuracy: 0.001)
+    }
+
+    // MARK: - Long-Press Toggle (ScrollableTimelineView Feature)
+
+    /// ScrollableTimelineView's long-press gesture calls toggleSegment on included segments.
+    /// Verify toggling the middle of three included segments leaves the others intact.
+    func testLongPressToggle_middleIncludedSegment() {
+        // Create three included segments
+        begin(at: 5)
+        stop(at: 10)
+        begin(at: 20)
+        stop(at: 25)
+        begin(at: 35)
+        stop(at: 40)
+
+        XCTAssertEqual(sut.includedSegmentCount, 3)
+
+        // Long-press on the middle included segment → toggle it to excluded
+        let middleIncluded = sut.segments.filter(\.isIncluded)[1]
+        sut.toggleSegment(id: middleIncluded.id)
+
+        // Should now have 2 included segments
+        XCTAssertEqual(sut.includedSegmentCount, 2)
+        let remaining = sut.segments.filter(\.isIncluded)
+        XCTAssertEqual(remaining[0].startTime, 5, accuracy: 0.001)
+        XCTAssertEqual(remaining[0].endTime, 10, accuracy: 0.001)
+        XCTAssertEqual(remaining[1].startTime, 35, accuracy: 0.001)
+        XCTAssertEqual(remaining[1].endTime, 40, accuracy: 0.001)
+    }
+
+    // MARK: - PlayerViewModel.greenFillEnd: Edge Cases
+
+    func testGreenFillEnd_notKeepingButHasStartTime_returnsNil() {
+        // Edge case: keepingStartTime somehow set but isIncluding is false
+        let vm = PlayerViewModel()
+        vm.isIncluding = false
+        vm.keepingStartTime = 10
+        vm.currentTime = 25
+        XCTAssertNil(vm.greenFillEnd, "greenFillEnd should be nil when not actively including")
+    }
+
+    func testGreenFillEnd_atZeroCurrentTime() {
+        let vm = PlayerViewModel()
+        vm.isIncluding = true
+        vm.keepingStartTime = 0
+        vm.currentTime = 0
+        XCTAssertEqual(vm.greenFillEnd, 0, "greenFillEnd should be 0 when keeping from start with no progress")
+    }
+
+    func testGreenFillEnd_tracksCurrentTimeProgression() {
+        let vm = PlayerViewModel()
+        vm.isIncluding = true
+        vm.keepingStartTime = 5
+
+        // Simulate time progression
+        vm.currentTime = 5
+        XCTAssertEqual(vm.greenFillEnd, 5)
+
+        vm.currentTime = 10
+        XCTAssertEqual(vm.greenFillEnd, 10)
+
+        vm.currentTime = 15
+        XCTAssertEqual(vm.greenFillEnd, 15)
+    }
+
+    // MARK: - PlayerViewModel.isPlaying: KVO-Derived Property
+    //
+    // NOTE: isPlaying is now derived from AVPlayer.timeControlStatus via KVO
+    // (BUG-9970815942). Tests should NOT assume manual isPlaying toggling
+    // because the KVO publisher will overwrite any manual assignment.
+    //
+    // The existing greenFillEnd tests correctly avoid depending on isPlaying.
+    // The greenFillEnd property depends only on isIncluding + keepingStartTime,
+    // which is the correct design — the green fill should show during active
+    // keeping regardless of play/pause state.
+
+    func testIsPlaying_initiallyFalse() {
+        let vm = PlayerViewModel()
+        // isPlaying defaults to false (AVPlayer not playing)
+        XCTAssertFalse(vm.isPlaying, "isPlaying should default to false")
+    }
+
+    // MARK: - Regression Documentation: Pause-on-Scrub Setting
+    //
+    // REGRESSION: The "Scrub While Keeping" setting (pauseOnScrub/keepPlaying)
+    // exists in SettingsView via @AppStorage("scrubWhileKeeping") but is NEVER
+    // consumed by PlayerView or PlayerViewModel.
+    //
+    // The old SegmentTimelineView had built-in scrub handling that consulted
+    // this setting. When the scrub bar was removed during the timeline overhaul,
+    // this behavior was lost. The scrub bar was re-added to PlayerView as a
+    // simple Slider that calls viewModel.seek(to:) directly — it does not read
+    // scrubWhileKeeping at all.
+    //
+    // Impact: Users who set "Pause on Scrub" in settings will NOT get pause
+    // behavior when scrubbing while keeping. The setting is effectively dead code.
+    //
+    // Recommendation: Either wire up the scrubWhileKeeping setting to the new
+    // scrub bar, or remove the dead setting from SettingsView.
+
+    func testScrubWhileKeeping_settingIsDeadCode() {
+        // This test documents that the scrubWhileKeeping setting exists in
+        // @AppStorage but is not consumed by the scrub bar or ViewModel.
+        //
+        // PlayerViewModel.seek(to:) does NOT check scrubWhileKeeping.
+        // The new scrub bar in PlayerView calls seek(to:) directly without
+        // consulting any "pause on scrub" preference.
+        //
+        // If this setting is wired up in the future, update this test to
+        // verify the behavior instead.
+        let vm = PlayerViewModel()
+        vm.isIncluding = true
+        vm.keepingStartTime = 10
+        vm.currentTime = 20
+
+        // Simulate a scrub (seek) while keeping — keeping state should persist
+        // (there's no automatic pause-on-scrub logic in the ViewModel)
+        vm.seek(to: 15)
+        XCTAssertTrue(vm.isIncluding, "Seeking while keeping should not stop keeping")
+        XCTAssertNotNil(vm.keepingStartTime, "keepingStartTime should persist after seek")
+    }
+
+    // MARK: - SegmentCanvasView Active Keep Visualization Consistency
+
+    /// The SegmentCanvasView draws a growing green bar when isIncluding &&
+    /// keepingStartTime != nil. This test verifies the data model that feeds
+    /// the canvas is consistent — greenFillEnd returns the value the canvas
+    /// needs to draw the active keep fill.
+    func testCanvasActiveKeepData_matchesGreenFillEnd() {
+        let vm = PlayerViewModel()
+        vm.isIncluding = true
+        vm.keepingStartTime = 12
+        vm.currentTime = 30
+
+        // The canvas checks: if isIncluding, let keepStart = keepingStartTime
+        // and draws from keepStart to currentTime.
+        // greenFillEnd should match currentTime in this state.
+        XCTAssertEqual(vm.greenFillEnd, vm.currentTime)
+        XCTAssertEqual(vm.keepingStartTime, 12)
+    }
+
+    // MARK: - Invariant: No Gaps or Overlaps After Complex Timeline Operations
+
+    func testNoGapsInContiguousSegments() {
+        // Build a complex timeline
+        begin(at: 0)
+        stop(at: 10)
+        begin(at: 20)
+        stop(at: 30)
+        begin(at: 25)  // re-keep overlapping
+        stop(at: 35)
+        begin(at: 5)   // re-keep overlapping first
+        stop(at: 15)
+
+        // Verify contiguity: each segment's end should equal the next's start
+        // (or be very close due to floating point)
+        for i in 1..<sut.segments.count {
+            XCTAssertEqual(
+                sut.segments[i - 1].endTime,
+                sut.segments[i].startTime,
+                accuracy: 0.001,
+                "Segments should be contiguous (no gaps)"
+            )
+        }
+    }
+
+    // MARK: - Reset Clears Recording State
+
+    func testReset_clearsRecordingState_thenKeepWorks() {
+        // Begin keeping (sets internal recordingStartTime)
+        begin(at: 10)
+
+        // Reset mid-keep
+        sut.reset()
+        XCTAssertTrue(sut.segments.isEmpty)
+
+        // Should be able to begin fresh after reset
+        begin(at: 5)
+        stop(at: 15)
+
+        let included = sut.segments.filter(\.isIncluded)
+        XCTAssertEqual(included.count, 1)
+        XCTAssertEqual(included[0].startTime, 5, accuracy: 0.001)
+        XCTAssertEqual(included[0].endTime, 15, accuracy: 0.001)
+    }
+
+    // MARK: - Finalize After Re-Keeps
+
+    func testFinalize_afterReKeeps_producesCleanTimeline() {
+        begin(at: 10)
+        stop(at: 30)
+        begin(at: 20)  // re-keep inside existing
+        stop(at: 40)
+
+        sut.finalizeSegments(videoDuration: 60)
+
+        // All segments should be valid, sorted, non-overlapping
+        for seg in sut.segments {
+            XCTAssertTrue(seg.isValid)
+        }
+        for i in 1..<sut.segments.count {
+            XCTAssertLessThanOrEqual(sut.segments[i - 1].endTime, sut.segments[i].startTime + 0.001)
+        }
+        // Last segment should not exceed video duration
+        if let last = sut.segments.last {
+            XCTAssertLessThanOrEqual(last.endTime, 60.001)
+        }
+    }
 }
